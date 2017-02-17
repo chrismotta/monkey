@@ -57,7 +57,7 @@
 
         private function _setController ( )
         {
-        	if ( $name = $this->_registry->httpRequest->getPathElement(2) )
+        	if ( $name = $this->_registry->httpRequest->getPathElement(0) )
         	{
 	            $class = 'Aff\Ad\Controller\\' . $name;
 

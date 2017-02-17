@@ -1,3 +1,10 @@
 <?php
-	echo 'ad_code: '. $registry->ad_code;
+	
+	echo json_encode( array ( 
+		'success'	=>  array(
+			'ad_code'	=> $registry->adCode,
+			'sid'		=> $registry->sid
+		)
+	) );
+
 ?>

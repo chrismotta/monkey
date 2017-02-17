@@ -21,7 +21,7 @@
         {
         	$ad = new Model\Ad(
         		$this->_registry,
-        		new Framework\Database\Redis\Predis( Config\Ad::REDIS_HOST ),
+        		new Framework\Database\Redis\Predis( Config\Ad::REDIS_CONFIG ),
         		new Framework\Device\Detection\Piwik(),
         		new Framework\TCP\Geolocation\Source\IP2Location( '../datasource/ip2location/IP-COUNTRY-REGION-CITY-LATITUDE-LONGITUDE-ISP-DOMAIN-MOBILE.BIN' )
         	);

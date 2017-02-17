@@ -27,7 +27,7 @@
 		{
 			$userAgent = $this->_registry->httpRequest->getUserAgent();
 			$ip = $this->_registry->httpRequest->getSourceIp();
-			$this->_geolocation->detect( $ip );
+
 
 			if ( !$userAgent || !$ip )
 			{
@@ -35,24 +35,47 @@
 				return false;
 			}
 
+			//-------------------------------------
+			// ADD TEST DATA
+			//-------------------------------------			
+			/*
+			$this->_deviceDetection->detect( $userAgent );
+			$this->_geolocation->detect( $ip );
+
+			$this->_cache->set( 'supply:2',  json_encode( array(
+
+				'frequency_cap'	  => 3,
+				'payout'		  => 5,
+				'model'			  => 'CPM',
+				'cluster'		  => 10
+			)));
+
+			$this->_cache->set( 'demand:10',  json_encode( array(
+				'ad_code'		  => 100,
+				'country'		  => $this->_geolocation->getCountryCode(),
+				'connection_type' => $this->_geolocation->getConnectionType(),
+				'carrier'		  => $this->_geolocation->getMobileCarrier(),
+				'os'			  => $this->_deviceDetection->getOs()
+			)));
+			*/
 
 			//-------------------------------------
 			// MATCH SUPPLY (placement_id)
 			//-------------------------------------
-			$placementId = $this->_registry->httpRequest->getPathElement(1);
-			$supply 	 = $this->_cache->get( 'supply:'.$placementId );
+			$placementId = $this->_registry->httpRequest->getPathElement(0);
+			$supply 	 = \json_decode( $this->_cache->get( 'supply:'.$placementId ) );
 
 			if ( !$placementId || !$supply ) // ver si le damos warnings separados o lo dejamos asi
 			{
 				$this->_createWarning( 'Placement not found', 'M000001A', 404 );
 				return false;				
-			}	
+			}
 
 
 			//-------------------------------------
 			// MATCH DEMAND (cluster_id)
 			//-------------------------------------
-			$demand = $this->_cache->get( 'demand:'.$supply['cluster'] );
+			$demand = \json_decode( $this->_cache->get( 'demand:'.$supply->cluster ) );
 
 			if ( !$demand )
 			{
@@ -64,9 +87,9 @@
 			$this->_geolocation->detect( $ip );
 
 			if ( 
-				$supply['os_type'] != $this->_deviceDetection->getOs()
-				|| $supply['country'] != $this->geolocation->getCountryCode() 
-				|| $supply['connection_type'] != $this->_geolocation->getConnectionType()  
+				$demand->os != $this->_deviceDetection->getOs()
+				|| $demand->country != $this->_geolocation->getCountryCode() 
+				|| $demand->connection_type != $this->_geolocation->getConnectionType()  
 			)
 			{
 				$this->_createWarning( 'No campaign match', 'M000003A', 404 );
@@ -81,44 +104,48 @@
 			$publisherId = $this->_registry->httpRequest->getParam('pubid');
 			$sessionId 	 = $this->_registry->httpRequest->getParam('sessionid');
 			$timestamp   = $this->_registry->httpRequest->getTimestamp();
+
+			// check if sessionId comes as request parameter and use it to calculate sessionHash. Otherwise use ip + userAgent
 			if ( $sessionId )
 			{
-				$sid = \md5( 
+				$sessionHash = \md5( 
 					\date( 'Y-m-d', $timestamp ) .
-					$supply['cluster'] .
+					$supply->cluster .
 					$placementId . 
 					$sessionId 									
 				);
 			}
 			else
 			{
-				$sid = \md5( 
+				$sessionHash = \md5( 
 					\date( 'Y-m-d', $timestamp ) .
-					$clusterId .
+					$supply->cluster .
 					$placementId . 
 					$ip . 
 					$userAgent								
 				);
 			}
 
-
 			//-------------------------------------
-			// CHECK FREQUENCY CAP AND SAVE LOG
+			// LOG
 			//-------------------------------------
-			$impCount = $this->_cache->get( 'impcount:'.$sid );
+			$impCount = $this->_cache->get( 'impcount:'.$sessionHash );
 
-			if ( $impCount < $supply['frequency_cap'] )
+			// check frequency cap for the current session
+			if ( $impCount < $supply->frequency_cap )
 			{
-				$data =  $this->_cache->get( 'impdata:'.$sid );
+				// save log data
+				$data =  $this->_cache->get( 'impdata:'.$sessionHash );
 
 				if ( $data )
 				{
-					$this->_cache->increment( 'impcount:'.$sid );
+					$this->_cache->increment( 'impcount:'.$sessionHash );
 				}
 				else
 				{
-					$this->_cache->set( 'impdata:'.$sid,  array(
-						'sid'             => $sid,
+					// investigar algo como $this->_cache->addtolist( 'impdata', $sessionHash ) para  traer data desde el ETL;
+					$this->_cache->set( 'impdata:'.$sessionHash,  \json_encode( array(
+						'sid'             => $sessionHash,
 						'timestamp'       => $timestamp,
 						'ip'	          => $ip,
 						'country'         => $this->_geolocation->getCountryCode(),
@@ -131,33 +158,40 @@
 						'device_brand'	  => $this->_deviceDetection->getBrand(),
 						'browser'		  => $this->_deviceDetection->getBrowser(),
 						'browser_version' => $this->_deviceDetection->getBrowserVersion()
-					));
+					)));
 
-	 				$this->_cache->set( 'impcount:'.$sid, 1 );
+	 				$this->_cache->set( 'impcount:'.$sessionHash, 1 );
 				}
 
-				switch ( $supply['model'] )
+				switch ( $supply->model )
 				{
 					case 'CPM':
+						$cost = $supply->payout/1000;
+						var_dump($cost);
 						if ( $data )
-							$this->_cache->increment( 'impcost:'.$sid, $supply['payout']/1000 );									
-						else
-							$this->_cache->set( 'impcost:'.$sid, $supply['payout']/1000 );
+							$this->_cache->increment( 'impcost:'.$sessionHash, $cost );	
+						else 
+							$this->_cache->set( 'impcost:'.$sessionHash, $cost );
 					break;
 					case 'RS':
 						if ( !$data )
-							$this->_cache->set( 'impcost:'.$sid, 0 );
+							$this->_cache->set( 'impcost:'.$sessionHash, 0 );
 					break;
 				}
 			}
 
 
 			//-------------------------------------
-			// PASS ad_code TO VIEW
+			// RENDER
 			//-------------------------------------
-			$this->_registry->adCode = $demand['ad_code'];
-			$this->_registry->status = 200;
+			// Store ad's code in registry to be acceded by view and/or controller
+			$this->_registry->adCode = $demand->ad_code;
 
+			// pass sid for testing
+			$this->_registry->sid = $sessionHash;
+
+			// Tell controller process completed successfully
+			$this->_registry->status = 200;
 			return true;
 		}
 

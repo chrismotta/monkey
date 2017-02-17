@@ -7,8 +7,10 @@
     ini_set('display_startup_errors', 1);
     error_reporting( E_ALL );
 
+
     // COMPOSER AUTOLOADER
 	require_once( '..'.\DIRECTORY_SEPARATOR.'vendor'.\DIRECTORY_SEPARATOR.'autoload.php');
+
 
     // PROJECT AUTOLOADER
 	spl_autoload_register( function ( $className ) {
@@ -35,6 +37,7 @@
 
 	});	
 
+
 	// CONFIG AUTOLOADER
 	spl_autoload_register( function ( $className ) {
 
@@ -46,6 +49,7 @@
 			require_once( $fileName );	
 		}
 	});		
+
 
 	// RUN
 	$main = new Core\Main();
