@@ -44,7 +44,7 @@
 
 			$this->_cache->set( 'supply:2',  json_encode( array(
 
-				'frequency_cap'	  => 3,
+				'frequency_cap'	  => 20,
 				'payout'		  => 5,
 				'model'			  => 'CPM',
 				'cluster'		  => 10
@@ -166,12 +166,10 @@
 				switch ( $supply->model )
 				{
 					case 'CPM':
-						$cost = $supply->payout/1000;
-						var_dump($cost);
 						if ( $data )
-							$this->_cache->increment( 'impcost:'.$sessionHash, $cost );	
+							$this->_cache->increment( 'impcost:'.$sessionHash, $supply->payout/1000 );	
 						else 
-							$this->_cache->set( 'impcost:'.$sessionHash, $cost );
+							$this->_cache->set( 'impcost:'.$sessionHash, $supply->payout/1000 );
 					break;
 					case 'RS':
 						if ( !$data )
