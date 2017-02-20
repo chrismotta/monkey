@@ -38,32 +38,31 @@
 			//-------------------------------------
 			// ADD TEST DATA
 			//-------------------------------------			
-			/*
+
 			$this->_deviceDetection->detect( $userAgent );
 			$this->_geolocation->detect( $ip );
 
-			$this->_cache->set( 'supply:2',  json_encode( array(
-
+			$this->_cache->set( 'supply:2',  msgpack_pack( array(
 				'frequency_cap'	  => 20,
 				'payout'		  => 5,
 				'model'			  => 'CPM',
 				'cluster'		  => 10
 			)));
 
-			$this->_cache->set( 'demand:10',  json_encode( array(
+			$this->_cache->set( 'demand:10',  msgpack_pack( array(
 				'ad_code'		  => 100,
 				'country'		  => $this->_geolocation->getCountryCode(),
 				'connection_type' => $this->_geolocation->getConnectionType(),
 				'carrier'		  => $this->_geolocation->getMobileCarrier(),
 				'os'			  => $this->_deviceDetection->getOs()
 			)));
-			*/
+
 
 			//-------------------------------------
 			// MATCH SUPPLY (placement_id)
 			//-------------------------------------
 			$placementId = $this->_registry->httpRequest->getPathElement(0);
-			$supply 	 = \json_decode( $this->_cache->get( 'supply:'.$placementId ) );
+			$supply 	 = msgpack_unpack( $this->_cache->get( 'supply:'.$placementId ) );
 
 			if ( !$placementId || !$supply ) // ver si le damos warnings separados o lo dejamos asi
 			{
@@ -75,7 +74,7 @@
 			//-------------------------------------
 			// MATCH DEMAND (cluster_id)
 			//-------------------------------------
-			$demand = \json_decode( $this->_cache->get( 'demand:'.$supply->cluster ) );
+			$demand = msgpack_unpack( $this->_cache->get( 'demand:'.$supply['cluster'] ) );
 
 			if ( !$demand )
 			{
@@ -87,9 +86,9 @@
 			$this->_geolocation->detect( $ip );
 
 			if ( 
-				$demand->os != $this->_deviceDetection->getOs()
-				|| $demand->country != $this->_geolocation->getCountryCode() 
-				|| $demand->connection_type != $this->_geolocation->getConnectionType()  
+				$demand['os'] != $this->_deviceDetection->getOs()
+				|| $demand['country'] != $this->_geolocation->getCountryCode() 
+				|| $demand['connection_type'] != $this->_geolocation->getConnectionType()  
 			)
 			{
 				$this->_createWarning( 'No campaign match', 'M000003A', 404 );
@@ -110,7 +109,7 @@
 			{
 				$sessionHash = \md5( 
 					\date( 'Y-m-d', $timestamp ) .
-					$supply->cluster .
+					$supply['cluster'] .
 					$placementId . 
 					$sessionId 									
 				);
@@ -119,7 +118,7 @@
 			{
 				$sessionHash = \md5( 
 					\date( 'Y-m-d', $timestamp ) .
-					$supply->cluster .
+					$supply['cluster'] .
 					$placementId . 
 					$ip . 
 					$userAgent								
@@ -132,7 +131,7 @@
 			$impCount = $this->_cache->get( 'impcount:'.$sessionHash );
 
 			// check frequency cap for the current session
-			if ( $impCount < $supply->frequency_cap )
+			if ( $impCount < $supply['frequency_cap'] )
 			{
 				// save log data
 				$data =  $this->_cache->get( 'impdata:'.$sessionHash );
@@ -144,7 +143,7 @@
 				else
 				{
 					// investigar algo como $this->_cache->addtolist( 'impdata', $sessionHash ) para  traer data desde el ETL;
-					$this->_cache->set( 'impdata:'.$sessionHash,  \json_encode( array(
+					$this->_cache->set( 'impdata:'.$sessionHash,  msgpack_pack( array(
 						'sid'             => $sessionHash,
 						'timestamp'       => $timestamp,
 						'ip'	          => $ip,
@@ -163,13 +162,13 @@
 	 				$this->_cache->set( 'impcount:'.$sessionHash, 1 );
 				}
 
-				switch ( $supply->model )
+				switch ( $supply['model'] )
 				{
 					case 'CPM':
 						if ( $data )
-							$this->_cache->increment( 'impcost:'.$sessionHash, $supply->payout/1000 );	
+							$this->_cache->increment( 'impcost:'.$sessionHash, $supply['payout']/1000 );	
 						else 
-							$this->_cache->set( 'impcost:'.$sessionHash, $supply->payout/1000 );
+							$this->_cache->set( 'impcost:'.$sessionHash, $supply['payout']/1000 );
 					break;
 					case 'RS':
 						if ( !$data )
@@ -183,7 +182,7 @@
 			// RENDER
 			//-------------------------------------
 			// Store ad's code in registry to be acceded by view and/or controller
-			$this->_registry->adCode = $demand->ad_code;
+			$this->_registry->adCode = $demand['ad_code'];
 
 			// pass sid for testing
 			$this->_registry->sid = $sessionHash;

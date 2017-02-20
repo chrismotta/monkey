@@ -23,7 +23,7 @@
         		$this->_registry,
         		new Framework\Database\Redis\Predis( Config\Ad::REDIS_CONFIG ),
         		new Framework\Device\Detection\Piwik(),
-        		new Framework\TCP\Geolocation\Source\IP2Location( '../datasource/ip2location/IP-COUNTRY-REGION-CITY-LATITUDE-LONGITUDE-ISP-DOMAIN-MOBILE.BIN' )
+        		new Framework\TCP\Geolocation\Source\IP2Location( Config\Ad::IP2LOCATION_BIN )
         	);
 
         	$ad->render();
