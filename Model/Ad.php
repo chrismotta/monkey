@@ -38,7 +38,7 @@
 			//-------------------------------------
 			// ADD TEST DATA
 			//-------------------------------------			
-			/*
+
 			$this->_deviceDetection->detect( $userAgent );
 
 			$this->_geolocation->detect( $ip );
@@ -57,7 +57,7 @@
 				'carrier'		  => $this->_geolocation->getMobileCarrier(),
 				'os'			  => $this->_deviceDetection->getOs()
 			)));
-			*/
+
 
 			//-------------------------------------
 			// MATCH SUPPLY (placement_id)
