@@ -38,8 +38,9 @@
 			//-------------------------------------
 			// ADD TEST DATA
 			//-------------------------------------			
+
+			//$this->_deviceDetection->detect( $userAgent );
 			/*
-			$this->_deviceDetection->detect( $userAgent );
 			$this->_geolocation->detect( $ip );
 
 			$this->_cache->set( 'supply:2',  msgpack_pack( array(
@@ -54,15 +55,10 @@
 				'country'		  => $this->_geolocation->getCountryCode(),
 				'connection_type' => $this->_geolocation->getConnectionType(),
 				'carrier'		  => $this->_geolocation->getMobileCarrier(),
-				'os'			  => $this->_deviceDetection->getOs()
+				'os'			  => 'fakeOS' // $this->_deviceDetection->getOs()
 			)));
 			*/
-			//test
-			$this->_geolocation->detect( $ip );
-			//$this->_deviceDetection->detect( $userAgent );			
-			$this->_registry->adCode = 'algo';
-			$this->_registry->status = 200;
-			return true;
+
 			//-------------------------------------
 			// MATCH SUPPLY (placement_id)
 			//-------------------------------------
@@ -87,7 +83,7 @@
 				return false;
 			}
 
-			$this->_deviceDetection->detect( $userAgent );
+			//$this->_deviceDetection->detect( $userAgent );
 			$this->_geolocation->detect( $ip );
 
 			if ( 
@@ -163,6 +159,22 @@
 						'browser'		  => $this->_deviceDetection->getBrowser(),
 						'browser_version' => $this->_deviceDetection->getBrowserVersion()
 					)));
+
+					var_dump(array(
+						'sid'             => $sessionHash,
+						'timestamp'       => $timestamp,
+						'ip'	          => $ip,
+						'country'         => $this->_geolocation->getCountryCode(),
+						'connection_type' => $this->_geolocation->getConnectionType(),
+						'carrier'		  => $this->_geolocation->getMobileCarrier(),
+						'os'			  => $this->_deviceDetection->getOs(),
+						'os_version'	  => $this->_deviceDetection->getOsVersion(),
+						'device'		  => $this->_deviceDetection->getType(),
+						'device_model'    => $this->_deviceDetection->getModel(),
+						'device_brand'	  => $this->_deviceDetection->getBrand(),
+						'browser'		  => $this->_deviceDetection->getBrowser(),
+						'browser_version' => $this->_deviceDetection->getBrowserVersion()
+					));
 
 	 				$this->_cache->set( 'impcount:'.$sessionHash, 1 );
 				}
