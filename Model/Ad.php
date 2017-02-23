@@ -57,7 +57,12 @@
 				'os'			  => $this->_deviceDetection->getOs()
 			)));
 			*/
-
+			//test
+			$this->_geolocation->detect( $ip );
+			$this->_deviceDetection->detect( $userAgent );			
+			$this->_registry->adCode = $demand['ad_code'];
+			$this->_registry->status = 200;
+			return true;
 			//-------------------------------------
 			// MATCH SUPPLY (placement_id)
 			//-------------------------------------
@@ -95,10 +100,7 @@
 				return false;				
 			}	
 
-			//test
-			$this->_registry->adCode = $demand['ad_code'];
-			$this->_registry->status = 200;
-			return true;
+
 			//-------------------------------------
 			// IDENTIFY USER (session_id)
 			//-------------------------------------
