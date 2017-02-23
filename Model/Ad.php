@@ -200,7 +200,7 @@
 
 			if ( !$data )
 			{
-				$this->_deviceDetection->detect( $userAgent );
+				$this->_deviceDetection->detect( $ua );
 
 				$data = array(
 					'os' 			  => $this->_deviceDetection->getOs(),
