@@ -85,9 +85,9 @@
 
 			//$this->_deviceDetection->detect( $userAgent );
 			$this->_geolocation->detect( $ip );
-/*
+
 			if ( 
-				$demand['os'] != $this->_deviceDetection->getOs()
+				$demand['os'] != 'asasdasdasdasd'/*$this->_deviceDetection->getOs()*/
 				|| $demand['country'] != $this->_geolocation->getCountryCode() 
 				|| $demand['connection_type'] != $this->_geolocation->getConnectionType()  
 			)
@@ -95,7 +95,6 @@
 				$this->_createWarning( 'No campaign match', 'M000003A', 404 );
 				return false;				
 			}	
-*/
 
 			//-------------------------------------
 			// IDENTIFY USER (session_id)
@@ -130,7 +129,7 @@
 			// LOG
 			//-------------------------------------
 			$impCount = $this->_cache->get( 'impcount:'.$sessionHash );
-			var_dump($this->_cache->get( 'impdata:'.$sessionHash ));
+
 			// check frequency cap for the current session
 			if ( $impCount < $supply['frequency_cap'] )
 			{
@@ -151,13 +150,13 @@
 						'country'         => $this->_geolocation->getCountryCode(),
 						'connection_type' => $this->_geolocation->getConnectionType(),
 						'carrier'		  => $this->_geolocation->getMobileCarrier(),
-						'os'			  => $this->_deviceDetection->getOs(),
-						'os_version'	  => $this->_deviceDetection->getOsVersion(),
-						'device'		  => $this->_deviceDetection->getType(),
-						'device_model'    => $this->_deviceDetection->getModel(),
-						'device_brand'	  => $this->_deviceDetection->getBrand(),
-						'browser'		  => $this->_deviceDetection->getBrowser(),
-						'browser_version' => $this->_deviceDetection->getBrowserVersion()
+						'os'			  => 'asasdasdasdasd',//$this->_deviceDetection->getOs(),
+						'os_version'	  => 'asdasdasdasdad',//$this->_deviceDetection->getOsVersion(),
+						'device'		  => 'asdasdasdasdasd',//$this->_deviceDetection->getType(),
+						'device_model'    => 'asdasdasdasdasd',//$this->_deviceDetection->getModel(),
+						'device_brand'	  => 'asdasdasdasdasd',//$this->_deviceDetection->getBrand(),
+						'browser'		  => 'asdasdasdasdas',//$this->_deviceDetection->getBrowser(),
+						'browser_version' => 'asdasdasdasdasd'//$this->_deviceDetection->getBrowserVersion()
 					)));
 
 	 				$this->_cache->set( 'impcount:'.$sessionHash, 1 );
