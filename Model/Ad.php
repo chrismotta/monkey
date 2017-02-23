@@ -58,8 +58,8 @@
 			)));
 			*/
 			//test
-			//$this->_geolocation->detect( $ip );
-			$this->_deviceDetection->detect( $userAgent );			
+			$this->_geolocation->detect( $ip );
+			//$this->_deviceDetection->detect( $userAgent );			
 			$this->_registry->adCode = 'algo';
 			$this->_registry->status = 200;
 			return true;
