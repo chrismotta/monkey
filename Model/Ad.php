@@ -85,7 +85,7 @@
 
 			//$this->_deviceDetection->detect( $userAgent );
 			$this->_geolocation->detect( $ip );
-
+/*
 			if ( 
 				$demand['os'] != $this->_deviceDetection->getOs()
 				|| $demand['country'] != $this->_geolocation->getCountryCode() 
@@ -95,7 +95,7 @@
 				$this->_createWarning( 'No campaign match', 'M000003A', 404 );
 				return false;				
 			}	
-
+*/
 
 			//-------------------------------------
 			// IDENTIFY USER (session_id)
