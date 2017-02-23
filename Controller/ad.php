@@ -19,6 +19,7 @@
 
 		public function route ( )
         {
+        	echo Config\Ad::REDIS_CONFIG;die(' ok');
         	$ad = new Model\Ad(
         		$this->_registry,
         		new Framework\Database\Redis\Predis( Config\Ad::REDIS_CONFIG ),
