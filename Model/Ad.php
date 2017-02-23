@@ -38,7 +38,7 @@
 			//-------------------------------------
 			// ADD TEST DATA
 			//-------------------------------------			
-
+			/*
 			$this->_deviceDetection->detect( $userAgent );
 			$this->_geolocation->detect( $ip );
 
@@ -56,7 +56,7 @@
 				'carrier'		  => $this->_geolocation->getMobileCarrier(),
 				'os'			  => $this->_deviceDetection->getOs()
 			)));
-
+			*/
 
 			//-------------------------------------
 			// MATCH SUPPLY (placement_id)
@@ -95,7 +95,10 @@
 				return false;				
 			}	
 
-
+			//test
+			$this->_registry->adCode = $demand['ad_code'];
+			$this->_registry->status = 200;
+			return true;
 			//-------------------------------------
 			// IDENTIFY USER (session_id)
 			//-------------------------------------
