@@ -40,7 +40,7 @@
 			//-------------------------------------			
 
 			//$this->_deviceDetection->detect( $userAgent );
-			/*
+
 			$this->_geolocation->detect( $ip );
 
 			$this->_cache->set( 'supply:2',  msgpack_pack( array(
@@ -55,9 +55,9 @@
 				'country'		  => $this->_geolocation->getCountryCode(),
 				'connection_type' => $this->_geolocation->getConnectionType(),
 				'carrier'		  => $this->_geolocation->getMobileCarrier(),
-				'os'			  => 'fakeOS' // $this->_deviceDetection->getOs()
+				'os'			  => 'asasdasdasdasd' // $this->_deviceDetection->getOs()
 			)));
-			*/
+
 
 			//-------------------------------------
 			// MATCH SUPPLY (placement_id)
