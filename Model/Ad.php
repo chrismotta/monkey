@@ -121,7 +121,8 @@
 					$supply['cluster'] .
 					$placementId . 
 					$ip . 
-					$userAgent								
+					//$userAgent								
+					rand()
 				);
 			}
 
