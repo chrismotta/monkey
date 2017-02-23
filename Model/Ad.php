@@ -83,11 +83,11 @@
 				return false;
 			}
 
-			//$this->_deviceDetection->detect( $userAgent );
+			$device = $this->_getDeviceData( $userAgent );
 			$this->_geolocation->detect( $ip );
 
 			if ( 
-				$demand['os'] != 'asasdasdasdasd'/*$this->_deviceDetection->getOs()*/
+				$demand['os'] != $device['os']
 				|| $demand['country'] != $this->_geolocation->getCountryCode() 
 				|| $demand['connection_type'] != $this->_geolocation->getConnectionType()  
 			)
@@ -121,8 +121,7 @@
 					$supply['cluster'] .
 					$placementId . 
 					$ip . 
-					//$userAgent								
-					rand()
+					$userAgent								
 				);
 			}
 
@@ -145,19 +144,19 @@
 				{
 					// investigar algo como $this->_cache->addtolist( 'impdata', $sessionHash ) para  traer data desde el ETL;
 					$this->_cache->set( 'impdata:'.$sessionHash,  msgpack_pack( array(
-						'sid'             => $sessionHash,
-						'timestamp'       => $timestamp,
-						'ip'	          => $ip,
-						'country'         => $this->_geolocation->getCountryCode(),
-						'connection_type' => $this->_geolocation->getConnectionType(),
-						'carrier'		  => $this->_geolocation->getMobileCarrier(),
-						'os'			  => 'asasdasdasdasd',//$this->_deviceDetection->getOs(),
-						'os_version'	  => 'asdasdasdasdad',//$this->_deviceDetection->getOsVersion(),
-						'device'		  => 'asdasdasdasdasd',//$this->_deviceDetection->getType(),
-						'device_model'    => 'asdasdasdasdasd',//$this->_deviceDetection->getModel(),
-						'device_brand'	  => 'asdasdasdasdasd',//$this->_deviceDetection->getBrand(),
-						'browser'		  => 'asdasdasdasdas',//$this->_deviceDetection->getBrowser(),
-						'browser_version' => 'asdasdasdasdasd'//$this->_deviceDetection->getBrowserVersion()
+						'sid'             => $sessionHash, 
+						'timestamp'       => $timestamp, 
+						'ip'	          => $ip, 
+						'country'         => $this->_geolocation->getCountryCode(), 
+						'connection_type' => $this->_geolocation->getConnectionType(), 
+						'carrier'		  => $this->_geolocation->getMobileCarrier(), 
+						'os'			  => $device['os'], 
+						'os_version'	  => $device['os_version'], 
+						'device'		  => $device['device'], 
+						'device_model'    => $device['device_model'], 
+						'device_brand'	  => $device['device_brand'], 
+						'browser'		  => $device['browser'], 
+						'browser_version' => $device['browser_version']
 					)));
 
 	 				$this->_cache->set( 'impcount:'.$sessionHash, 1 );
@@ -193,6 +192,30 @@
 			// Tell controller process completed successfully
 			$this->_registry->status = 200;
 			return true;
+		}
+
+		private function _getDeviceData( $ua )
+		{
+			$data = msgpack_unpack( $this->_cache->get( 'ua:'.md5($ua) ) );
+
+			if ( !$data )
+			{
+				$this->_deviceDetection->detect( $userAgent );
+
+				$data = array(
+					'os' 			  => $this->_deviceDetection->getOs(),
+					'os_version'	  => $this->_deviceDetection->getOsVersion(), 
+					'device'		  => $this->_deviceDetection->getType(), 
+					'device_model'    => $this->_deviceDetection->getModel(), 
+					'device_brand'	  => $this->_deviceDetection->getBrand(), 
+					'browser'		  => $this->_deviceDetection->getBrowser(), 
+					'browser_version' => $this->_deviceDetection->getBrowserVersion() 
+				);
+
+				$this->_cache->set( 'ua:'.md5($ua), msgpack_pack( $data ) );			
+			}
+
+			return $data;
 		}
 
 
