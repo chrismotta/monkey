@@ -130,7 +130,7 @@
 			// LOG
 			//-------------------------------------
 			$impCount = $this->_cache->get( 'impcount:'.$sessionHash );
-
+			var_dump($this->_cache->get( 'impdata:'.$sessionHash ));
 			// check frequency cap for the current session
 			if ( $impCount < $supply['frequency_cap'] )
 			{
@@ -163,7 +163,7 @@
 	 				$this->_cache->set( 'impcount:'.$sessionHash, 1 );
 				}
 
-				var_dump($data);
+
 
 				switch ( $supply['model'] )
 				{
