@@ -40,7 +40,7 @@
 			//-------------------------------------			
 
 			//$this->_deviceDetection->detect( $userAgent );
-
+			/*
 			$this->_geolocation->detect( $ip );
 
 			$this->_cache->set( 'supply:2',  msgpack_pack( array(
@@ -57,7 +57,7 @@
 				'carrier'		  => $this->_geolocation->getMobileCarrier(),
 				'os'			  => 'asasdasdasdasd' // $this->_deviceDetection->getOs()
 			)));
-
+			*/
 
 			//-------------------------------------
 			// MATCH SUPPLY (placement_id)
