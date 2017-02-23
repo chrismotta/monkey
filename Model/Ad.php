@@ -39,7 +39,7 @@
 			// ADD TEST DATA
 			//-------------------------------------			
 
-			//$this->_deviceDetection->detect( $userAgent );
+			$this->_deviceDetection->detect( $userAgent );
 
 			$this->_geolocation->detect( $ip );
 
