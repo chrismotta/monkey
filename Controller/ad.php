@@ -19,10 +19,9 @@
 
 		public function route ( )
         {
-        	echo Config\Ad::REDIS_CONFIG;die(' ok');
         	$ad = new Model\Ad(
         		$this->_registry,
-        		new Framework\Database\Redis\Predis( Config\Ad::REDIS_CONFIG ),
+        		new Framework\Database\Redis\Predis( 'tcp://'.Config\Ad::REDIS_CONFIG.':6379' ),
         		new Framework\Device\Detection\Piwik(),
         		new Framework\TCP\Geolocation\Source\IP2Location( Config\Ad::IP2LOCATION_BIN )
         	);
