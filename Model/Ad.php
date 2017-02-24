@@ -70,7 +70,6 @@
 				$this->_createWarning( 'Placement not found', 'M000001A', 404 );
 				return false;				
 			}
-			var_dump($supply);
 
 			//-------------------------------------
 			// MATCH DEMAND (cluster_id)
@@ -85,6 +84,10 @@
 
 			$device = $this->_getDeviceData( $userAgent );
 			$this->_geolocation->detect( $ip );
+			var_dump($demand);
+			echo '<br>'.$device['os'];
+			echo '<br>'.$this->_geolocation->getCountryCode();
+			echo '<br>'.$this->_geolocation->getConnectionType();
 
 			if ( 
 				$demand['os'] != $device['os']
