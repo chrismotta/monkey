@@ -27,12 +27,10 @@
 		{
 			$userAgent = $this->_registry->httpRequest->getUserAgent();
 
-			var_dump($this->_registry->httpRequest->getHeaders());
 			// check if load balancer exists. If exists get original ip from header
 			$ip = $this->_registry->httpRequest->getHeader('X-Forwarded-For');
 			if ( !$ip )
 				$ip = $this->_registry->httpRequest->getSourceIp();
-
 
 			if ( !$userAgent || !$ip )
 			{
@@ -89,8 +87,6 @@
 
 			$device = $this->_getDeviceData( $userAgent );
 			$this->_geolocation->detect( $ip );
-			die($this->_registry->httpRequest->getSourceIp() );
-
 
 			if ( 
 				$demand['os'] != $device['os']
