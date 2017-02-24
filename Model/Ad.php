@@ -26,8 +26,12 @@
 		public function render ( )
 		{
 			$userAgent = $this->_registry->httpRequest->getUserAgent();
-			$ip = $this->_registry->httpRequest->getSourceIp();
 
+			$ip = $this->_registry->httpRequest->getHeader('X-Forwarded-For');
+			if ( !$ip )
+				$ip = $this->_registry->httpRequest->getSourceIp();
+
+			die($ip);
 
 			if ( !$userAgent || !$ip )
 			{
