@@ -38,7 +38,7 @@
 			//-------------------------------------
 			// ADD TEST DATA
 			//-------------------------------------			
-			/*
+
 			$this->_deviceDetection->detect( $userAgent );
 
 			$this->_geolocation->detect( $ip );
@@ -57,7 +57,7 @@
 				'carrier'		  => $this->_geolocation->getMobileCarrier(),
 				'os'			  => $this->_deviceDetection->getOs()
 			)));
-			*/
+
 
 			//-------------------------------------
 			// MATCH SUPPLY (placement_id)
@@ -194,10 +194,11 @@
 			return true;
 		}
 
+
 		private function _getDeviceData( $ua )
 		{
 			$data = msgpack_unpack( $this->_cache->get( 'ua:'.md5($ua) ) );
-
+			
 			if ( !$data )
 			{
 				$this->_deviceDetection->detect( $ua );
