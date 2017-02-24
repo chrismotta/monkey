@@ -38,9 +38,9 @@
 			//-------------------------------------
 			// ADD TEST DATA
 			//-------------------------------------			
-
-			$this->_deviceDetection->detect( $userAgent );
 			/*
+			$this->_deviceDetection->detect( $userAgent );
+
 			$this->_geolocation->detect( $ip );
 
 			$this->_cache->set( 'supply:2',  msgpack_pack( array(
@@ -70,7 +70,7 @@
 				$this->_createWarning( 'Placement not found', 'M000001A', 404 );
 				return false;				
 			}
-
+			var_dump($supply);
 
 			//-------------------------------------
 			// MATCH DEMAND (cluster_id)
