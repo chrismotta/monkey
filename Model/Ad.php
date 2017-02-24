@@ -27,11 +27,11 @@
 		{
 			$userAgent = $this->_registry->httpRequest->getUserAgent();
 
+			// check if load balancer exists. If exists get original ip from header
 			$ip = $this->_registry->httpRequest->getHeader('X-Forwarded-For');
 			if ( !$ip )
 				$ip = $this->_registry->httpRequest->getSourceIp();
 
-			die($ip);
 
 			if ( !$userAgent || !$ip )
 			{
