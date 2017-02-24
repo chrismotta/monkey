@@ -84,10 +84,8 @@
 
 			$device = $this->_getDeviceData( $userAgent );
 			$this->_geolocation->detect( $ip );
-			var_dump($demand);
-			echo '<br>'.$device['os'];
-			echo '<br>'.$this->_geolocation->getCountryCode();
-			echo '<br>'.$this->_geolocation->getConnectionType();
+			die($this->_registry->httpRequest->getSourceIp() );
+
 
 			if ( 
 				$demand['os'] != $device['os']
