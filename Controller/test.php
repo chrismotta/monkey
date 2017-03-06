@@ -33,43 +33,42 @@
 
 			$geolocation->detect( $ip );
 
-			$cache->set( 'supply:2',  msgpack_pack( array(
+			$cache->setMap( 'supply:2',  array(
 				'frequency_cap'	  => 20,
 				'payout'		  => 5,
 				'model'			  => 'CPM',
 				'cluster'		  => 5
-			)));
+			));
 
+			$cache->addToSet( 'cluster:5', 10 );
+			$cache->addToSet( 'cluster:5', 11 );
+			$cache->addToSet( 'cluster:5', 12 );
 
-			$cache->appendToList( 'cluster:5', 10 );
-			$cache->appendToList( 'cluster:5', 11 );
-			$cache->appendToList( 'cluster:5', 12 );
-
-			$cache->set( 'demand:10',  msgpack_pack( array(
+			$cache->setMap( 'demand:10',  array(
 				'ad_code'		  => 100,
 				'country'		  => $geolocation->getCountryCode(),
 				'connection_type' => $geolocation->getConnectionType(),
 				'carrier'		  => $geolocation->getMobileCarrier(),
 				'os'			  => $deviceDetection->getOs()
-			)));        	
+			));        	
 
 
-			$cache->set( 'demand:11',  msgpack_pack( array(
+			$cache->setMap( 'demand:11',  array(
 				'ad_code'		  => 200,
 				'country'		  => $geolocation->getCountryCode(),
 				'connection_type' => $geolocation->getConnectionType(),
 				'carrier'		  => $geolocation->getMobileCarrier(),
 				'os'			  => $deviceDetection->getOs()
-			)));        	
+			));     	
 
 
-			$cache->set( 'demand:12',  msgpack_pack( array(
+			$cache->setMap( 'demand:12',  array(
 				'ad_code'		  => 300,
 				'country'		  => $geolocation->getCountryCode(),
 				'connection_type' => $geolocation->getConnectionType(),
 				'carrier'		  => $geolocation->getMobileCarrier(),
 				'os'			  => $deviceDetection->getOs()
-			)));        	
+			));     	
 
         }
 
