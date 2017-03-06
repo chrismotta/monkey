@@ -8,7 +8,14 @@
 	class Ad extends Framework\ModelAbstract
 	{
 
+		private $_deviceDetection;
+		private $_geolocation;
+		private $_cache;
+		private $_campaignSelection;
+
+
 		public function __construct ( 
+			CampaignSelection $campaignSelection,
 			Framework\Registry $registry,
 			Framework\Database\KeyValueInterface $cache,
 			Framework\Device\DetectionInterface $deviceDetection,
@@ -17,17 +24,18 @@
 		{
 			parent::__construct( $registry );
 
-			$this->_deviceDetection = $deviceDetection;
-			$this->_geolocation     = $geolocation;
-			$this->_cache           = $cache;
+			$this->_deviceDetection 	= $deviceDetection;
+			$this->_geolocation     	= $geolocation;
+			$this->_cache           	= $cache;
+			$this->_campaignSelection	= $campaignSelection;
 		}
 
 
-		public function render ( )
+		public function render ( $placement_id )
 		{
 			$userAgent = $this->_registry->httpRequest->getUserAgent();
 
-			// check if load balancer exists. If exists get original ip from header
+			// check if load balancer exists. If exists get original ip from X-Forwarded-For header
 			$ip = $this->_registry->httpRequest->getHeader('X-Forwarded-For');
 			if ( !$ip )
 				$ip = $this->_registry->httpRequest->getSourceIp();
@@ -38,35 +46,11 @@
 				return false;
 			}
 
-			//-------------------------------------
-			// ADD TEST DATA
-			//-------------------------------------			
-			/*
-			$this->_deviceDetection->detect( $userAgent );
-
-			$this->_geolocation->detect( $ip );
-
-			$this->_cache->set( 'supply:2',  msgpack_pack( array(
-				'frequency_cap'	  => 20,
-				'payout'		  => 5,
-				'model'			  => 'CPM',
-				'cluster'		  => 10
-			)));
-
-			$this->_cache->set( 'demand:10',  msgpack_pack( array(
-				'ad_code'		  => 100,
-				'country'		  => $this->_geolocation->getCountryCode(),
-				'connection_type' => $this->_geolocation->getConnectionType(),
-				'carrier'		  => $this->_geolocation->getMobileCarrier(),
-				'os'			  => $this->_deviceDetection->getOs()
-			)));
-			*/
 
 			//-------------------------------------
 			// MATCH SUPPLY (placement_id)
 			//-------------------------------------
-			$placementId = $this->_registry->httpRequest->getPathElement(0);
-			$supply 	 = msgpack_unpack( $this->_cache->get( 'supply:'.$placementId ) );
+			$supply = msgpack_unpack( $this->_cache->get( 'supply:'.$placementId ) );
 
 			if ( !$placementId || !$supply ) // ver si le damos warnings separados o lo dejamos asi
 			{
@@ -74,10 +58,19 @@
 				return false;				
 			}
 
+
+			//------------------------------------------
+			// MATCH CAMPAIGNS FROM CLUSTER (cluster_id)
+			//------------------------------------------			
+			$campaignId = $this->_campaignSelection->getCampaignId( 
+					$this->_cache->getFromListByRange( 'cluster:'.$supply['cluster'], 0, -1 ) 
+			);
+
+
 			//-------------------------------------
-			// MATCH DEMAND (cluster_id)
+			// MATCH CAMPAIGN (campaign id)
 			//-------------------------------------
-			$demand = msgpack_unpack( $this->_cache->get( 'demand:'.$supply['cluster'] ) );
+			$demand = msgpack_unpack( $this->_cache->get( 'cp:'.$campaignId ) );
 
 			if ( !$demand )
 			{
@@ -98,6 +91,7 @@
 				return false;				
 			}	
 
+
 			//-------------------------------------
 			// IDENTIFY USER (session_id)
 			//-------------------------------------
@@ -110,10 +104,10 @@
 			if ( $sessionId )
 			{
 				$sessionHash = \md5( 
-					\date( 'Y-m-d', $timestamp ) .
-					$supply['cluster'] .
+					\date( 'Y-m-d', $timestamp ) . 
+					$supply['cluster'] . 
 					$placementId . 
-					$sessionId 									
+					$sessionId 
 				);
 			}
 			else
@@ -122,32 +116,33 @@
 					\date( 'Y-m-d', $timestamp ) .
 					$supply['cluster'] .
 					$placementId . 
-					rand()
-					//$ip . 
-					//$userAgent								
+					$ip . 
+					$userAgent								
 				);
 			}
+
 
 			//-------------------------------------
 			// LOG
 			//-------------------------------------
-			$impCount = $this->_cache->get( 'impcount:'.$sessionHash );
+			$impCount = $this->_cache->get( 'imp:'.$sessionHash );
 
 			// check frequency cap for the current session
-			if ( $impCount < $supply['frequency_cap'] )
+			if ( !$impCount || $impCount < $supply['frequency_cap'] )
 			{
 				// save log data
-				$data =  $this->_cache->get( 'impdata:'.$sessionHash );
-
-				if ( $data )
+				if ( $impCount )
 				{
-					$this->_cache->increment( 'impcount:'.$sessionHash );
+					$this->_cache->increment( 'imp:'.$sessionHash );
 				}
 				else
 				{
-					// investigar algo como $this->_cache->addtolist( 'impdata', $sessionHash ) para  traer data desde el ETL;
-					$this->_cache->set( 'impdata:'.$sessionHash,  msgpack_pack( array(
+					// save session hash into a list in order to find all logs in ETL script
+					$this->_cache->appendToList( 'logs', $sessionHash );
+
+					$this->_cache->set( 'log:'.$sessionHash,  msgpack_pack( array(
 						'sid'             => $sessionHash, 
+						'campaign_id'	  => $campaignId, 
 						'timestamp'       => $timestamp, 
 						'ip'	          => $ip, 
 						'country'         => $this->_geolocation->getCountryCode(), 
@@ -162,22 +157,21 @@
 						'browser_version' => $device['browser_version']
 					)));
 
-	 				$this->_cache->set( 'impcount:'.$sessionHash, 1 );
+	 				$this->_cache->set( 'imp:'.$sessionHash, 1 );
 				}
-
 
 
 				switch ( $supply['model'] )
 				{
 					case 'CPM':
 						if ( $data )
-							$this->_cache->increment( 'impcost:'.$sessionHash, $supply['payout']/1000 );	
+							$this->_cache->increment( 'cost:'.$sessionHash, $supply['payout']/1000 );	
 						else 
-							$this->_cache->set( 'impcost:'.$sessionHash, $supply['payout']/1000 );
+							$this->_cache->set( 'cost:'.$sessionHash, $supply['payout']/1000 );
 					break;
 					case 'RS':
 						if ( !$data )
-							$this->_cache->set( 'impcost:'.$sessionHash, 0 );
+							$this->_cache->set( 'cost:'.$sessionHash, 0 );
 					break;
 				}
 			}
@@ -186,7 +180,7 @@
 			//-------------------------------------
 			// RENDER
 			//-------------------------------------
-			// Store ad's code in registry to be acceded by view and/or controller
+			// Store ad's code to be acceded by view and/or controller
 			$this->_registry->adCode = $demand['ad_code'];
 
 			// pass sid for testing

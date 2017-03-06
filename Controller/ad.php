@@ -26,9 +26,11 @@
         		new Framework\TCP\Geolocation\Source\IP2Location( Config\Ad::IP2LOCATION_BIN )
         	);
 
-        	$ad->render();
+        	$placementId = $this->_registry->httpRequest->getPathElement(0);
 
-            $this->render( 'ad/index' );
+        	$ad->render( $placementId );
+
+            $this->render( 'ad' );
         }
 
 	}
