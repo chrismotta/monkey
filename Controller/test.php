@@ -47,28 +47,28 @@
 
 			$cache->set( 'demand:10',  msgpack_pack( array(
 				'ad_code'		  => 100,
-				'country'		  => $this->_geolocation->getCountryCode(),
-				'connection_type' => $this->_geolocation->getConnectionType(),
-				'carrier'		  => $this->_geolocation->getMobileCarrier(),
-				'os'			  => $this->_deviceDetection->getOs()
+				'country'		  => $geolocation->getCountryCode(),
+				'connection_type' => $geolocation->getConnectionType(),
+				'carrier'		  => $geolocation->getMobileCarrier(),
+				'os'			  => $deviceDetection->getOs()
 			)));        	
 
 
 			$cache->set( 'demand:11',  msgpack_pack( array(
 				'ad_code'		  => 200,
-				'country'		  => $this->_geolocation->getCountryCode(),
-				'connection_type' => $this->_geolocation->getConnectionType(),
-				'carrier'		  => $this->_geolocation->getMobileCarrier(),
-				'os'			  => $this->_deviceDetection->getOs()
+				'country'		  => $geolocation->getCountryCode(),
+				'connection_type' => $geolocation->getConnectionType(),
+				'carrier'		  => $geolocation->getMobileCarrier(),
+				'os'			  => $deviceDetection->getOs()
 			)));        	
 
 
 			$cache->set( 'demand:12',  msgpack_pack( array(
 				'ad_code'		  => 300,
-				'country'		  => $this->_geolocation->getCountryCode(),
-				'connection_type' => $this->_geolocation->getConnectionType(),
-				'carrier'		  => $this->_geolocation->getMobileCarrier(),
-				'os'			  => $this->_deviceDetection->getOs()
+				'country'		  => $geolocation->getCountryCode(),
+				'connection_type' => $geolocation->getConnectionType(),
+				'carrier'		  => $geolocation->getMobileCarrier(),
+				'os'			  => $deviceDetection->getOs()
 			)));        	
 
         }
