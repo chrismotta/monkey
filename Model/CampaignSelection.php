@@ -16,7 +16,7 @@
 		}
 
 
-		public function run ( array $campaigns_tags )
+		public function run ( array $campaigns_tags, array $options = null )
 		{
 
 		}
@@ -28,7 +28,7 @@
 		}
 
 
-		public function getTag ( array $options = null )
+		public function getTag ( )
 		{
 			return 'tag';
 		}
