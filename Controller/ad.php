@@ -20,7 +20,7 @@
 		public function route ( )
         {
         	$ad = new Model\Ad(
-        		new Model\CampaignSelection(),
+        		new Model\CampaignSelection( $this->_registry ),
         		$this->_registry,
         		new Framework\Database\Redis\Predis( 'tcp://'.Config\Ad::REDIS_CONFIG.':6379' ),
         		new Framework\Device\Detection\Piwik(),
