@@ -15,7 +15,7 @@
 
 
 		public function __construct ( 
-			CampaignSelection $campaignSelection,
+			CampaignSelectionInterface $campaignSelection,
 			Framework\Registry $registry,
 			Framework\Database\KeyValueInterface $cache,
 			Framework\Device\DetectionInterface $deviceDetection,

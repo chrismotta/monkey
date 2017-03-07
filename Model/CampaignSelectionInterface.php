@@ -1,6 +1,6 @@
 <?php
 
-	namespace Aff\Model;
+	namespace Aff\Ad\Model;
 
 	use Aff\Framework;
 
