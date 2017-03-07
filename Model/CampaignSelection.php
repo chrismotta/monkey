@@ -5,7 +5,7 @@
 	use Aff\Framework;
 
 
-	class CampaignSelection extends Framework\ModelAbstract
+	class CampaignSelection extends Framework\ModelAbstract implements CampaignSelectionInterface
 	{
 
 		public function __construct ( 
@@ -16,11 +16,21 @@
 		}
 
 
-		public function getCampaignId ( array $campaign_ids )
+		public function run ( array $campaigns_tags )
 		{
-			$r = rand( 0, count( $campaign_ids ) );
 
-			return $campaign_ids[$r];
+		}
+
+
+		public function getCampaignId ( )
+		{
+			return 'cid';
+		}
+
+
+		public function getTag ( array $options = null )
+		{
+			return 'tag';
 		}
 
 	}

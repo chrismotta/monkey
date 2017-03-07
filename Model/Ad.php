@@ -50,7 +50,7 @@
 			//-------------------------------------
 			// MATCH SUPPLY (placement_id)
 			//-------------------------------------
-			$supply = msgpack_unpack( $this->_cache->get( 'supply:'.$placementId ) );
+			$supply = $this->_cache->getMap( 'supply:'.$placementId );
 
 			if ( !$placementId || !$supply ) // ver si le damos warnings separados o lo dejamos asi
 			{
@@ -62,15 +62,17 @@
 			//------------------------------------------
 			// MATCH CAMPAIGNS FROM CLUSTER (cluster_id)
 			//------------------------------------------			
-			$campaignId = $this->_campaignSelection->getCampaignId( 
-					$this->_cache->getFromListByRange( 'cluster:'.$supply['cluster'], 0, -1 ) 
+			$this->_campaignSelection->run( 
+					$this->_cache->getSet( 'cluster:'.$supply['cluster'] ) 
 			);
+
+			$campaignId = $this->_campaignSelection->getCampaignId();
 
 
 			//-------------------------------------
 			// MATCH CAMPAIGN (campaign id)
 			//-------------------------------------
-			$demand = msgpack_unpack( $this->_cache->get( 'cp:'.$campaignId ) );
+			$demand = $this->_cache->getMap( 'cp:'.$campaignId );
 
 			if ( !$demand )
 			{
@@ -125,7 +127,7 @@
 			//-------------------------------------
 			// LOG
 			//-------------------------------------
-			$impCount = $this->_cache->get( 'imp:'.$sessionHash );
+			$impCount = $this->_cache->getMapField( 'log:'.$sessionHash, 'imps' );
 
 			// check frequency cap for the current session
 			if ( !$impCount || $impCount < $supply['frequency_cap'] )
@@ -133,14 +135,14 @@
 				// save log data
 				if ( $impCount )
 				{
-					$this->_cache->increment( 'imp:'.$sessionHash );
+					$this->_cache->incrementMapField( 'log:'.$sessionHash, 'imps' );
 				}
 				else
 				{
 					// save session hash into a list in order to find all logs in ETL script
-					$this->_cache->appendToList( 'logs', $sessionHash );
+					$this->_cache->addToSet( 'logs', $sessionHash );
 
-					$this->_cache->set( 'log:'.$sessionHash,  msgpack_pack( array(
+					$this->_cache->setMap( 'log:'.$sessionHash, [
 						'sid'             => $sessionHash, 
 						'campaign_id'	  => $campaignId, 
 						'timestamp'       => $timestamp, 
@@ -154,10 +156,9 @@
 						'device_model'    => $device['device_model'], 
 						'device_brand'	  => $device['device_brand'], 
 						'browser'		  => $device['browser'], 
-						'browser_version' => $device['browser_version']
-					)));
-
-	 				$this->_cache->set( 'imp:'.$sessionHash, 1 );
+						'browser_version' => $device['browser_version'],
+						'imps'			  => 1
+					]);
 				}
 
 
@@ -181,10 +182,10 @@
 			// RENDER
 			//-------------------------------------
 			// Store ad's code to be acceded by view and/or controller
-			$this->_registry->adCode = $demand['ad_code'];
+			$this->_registry->tag = $this->_campaignSelection->getTag();
 
 			// pass sid for testing
-			$this->_registry->sid = $sessionHash;
+			//$this->_registry->sid = $sessionHash;
 
 			// Tell controller process completed successfully
 			$this->_registry->status = 200;

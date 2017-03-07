@@ -40,11 +40,9 @@
 				'cluster'		  => 5
 			));
 
-			$cache->addToSet( 'cluster:5', 10 );
-			$cache->addToSet( 'cluster:5', 11 );
-			$cache->addToSet( 'cluster:5', 12 );
+			$cache->addToSet( 'cluster:5', [ 10, 11, 12 ] );
 
-			$cache->setMap( 'demand:10',  array(
+			$cache->setMap( 'cp:10',  array(
 				'ad_code'		  => 100,
 				'country'		  => $geolocation->getCountryCode(),
 				'connection_type' => $geolocation->getConnectionType(),
@@ -53,7 +51,7 @@
 			));        	
 
 
-			$cache->setMap( 'demand:11',  array(
+			$cache->setMap( 'cp:11',  array(
 				'ad_code'		  => 200,
 				'country'		  => $geolocation->getCountryCode(),
 				'connection_type' => $geolocation->getConnectionType(),
@@ -62,7 +60,7 @@
 			));     	
 
 
-			$cache->setMap( 'demand:12',  array(
+			$cache->setMap( 'cp:12',  array(
 				'ad_code'		  => 300,
 				'country'		  => $geolocation->getCountryCode(),
 				'connection_type' => $geolocation->getConnectionType(),
