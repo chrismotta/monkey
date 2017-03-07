@@ -50,6 +50,9 @@
 			//-------------------------------------
 			// MATCH SUPPLY (placement_id)
 			//-------------------------------------
+			
+			$placementId = $this->_registry->httpRequest->getParam('placementId');
+			 
 			$supply = $this->_cache->getMap( 'supply:'.$placementId );
 
 			if ( !$placementId || !$supply ) // ver si le damos warnings separados o lo dejamos asi
