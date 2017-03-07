@@ -46,18 +46,23 @@
 				return false;
 			}
 
-
 			//-------------------------------------
 			// MATCH SUPPLY (placement_id)
 			//-------------------------------------
 			
-			$placementId = $this->_registry->httpRequest->getParam('placementId');
-			 
-			$supply = $this->_cache->getMap( 'supply:'.$placementId );
+			$placementId = $this->_registry->httpRequest->getPathElement(0);
 
-			if ( !$placementId || !$supply ) // ver si le damos warnings separados o lo dejamos asi
+			if ( !$placementId )
 			{
 				$this->_createWarning( 'Placement not found', 'M000001A', 404 );
+				return false;				
+			}
+
+			$supply = $this->_cache->getMap( 'supply:'.$placementId );
+
+			if ( !$supply ) // ver si le damos warnings separados o lo dejamos asi
+			{
+				$this->_createWarning( 'Placement not found', 'M000002A', 404 );
 				return false;				
 			}
 
@@ -79,7 +84,7 @@
 
 			if ( !$demand )
 			{
-				$this->_createWarning( 'No campaign match', 'M000002A', 404 );
+				$this->_createWarning( 'No campaign match', 'M000003A', 404 );
 				return false;
 			}
 
@@ -92,7 +97,7 @@
 				|| $demand['connection_type'] != $this->_geolocation->getConnectionType()  
 			)
 			{
-				$this->_createWarning( 'No campaign match', 'M000003A', 404 );
+				$this->_createWarning( 'No campaign match', 'M000004A', 404 );
 				return false;				
 			}	
 
