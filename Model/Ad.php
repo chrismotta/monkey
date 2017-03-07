@@ -60,7 +60,7 @@
 
 			$supply = $this->_cache->getMap( 'supply:'.$placementId );
 
-			if ( !$supply ) // ver si le damos warnings separados o lo dejamos asi
+			if ( !$supply )
 			{
 				$this->_createWarning( 'Placement not found', 'M000002A', 404 );
 				return false;				
