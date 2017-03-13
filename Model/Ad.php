@@ -174,8 +174,8 @@
 						{
 							$clickId    = md5( $campaignId.$sessionHash );
 							$clickIDs[] = $clickId;
-							
-							// campaign log
+
+							// if campaign log exists increment, otherwise create new
 							if ( $this->_cache->isInSet( 'campaignlogs', $clickId ) )
 							{
 								echo '6, ';
@@ -188,8 +188,10 @@
 							}
 						}
 
-						// campaign selection with retargeting
+						// run campaign selection with retargeting
 						$this->_campaignSelection->run( $clickIDs );
+
+						// store ad's code to be found by view and/or controller
 						$this->_registry->adCode = $this->_campaignSelection->getAdCode();					
 					}
 				}	
@@ -199,9 +201,10 @@
 			//-------------------------------------
 			// RENDER
 			//-------------------------------------
-			// Store ad's code to be acceded by view and/or controller
-
-
+			
+			if ( !$this->_registry->adCode )
+				echo 'fake code';
+			
 			// pass sid for testing
 			//$this->_registry->sid = $sessionHash;
 			echo $sessionHash.': ';
