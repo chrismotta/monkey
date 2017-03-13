@@ -38,7 +38,7 @@
 		public function render ( $placement_id )
 		{
 			//-------------------------------------
-			// GET USER DATA
+			// GET & VALIDATE USER DATA
 			//-------------------------------------
 
 			$userAgent = $this->_registry->httpRequest->getUserAgent();
@@ -104,17 +104,19 @@
 
 
 			//-------------------------------------------------------
-			// CHECK IF IMPRESION EXISTS OR PLACEMENT IS IN TEST MODE
+			// CHECK PLACEMENT STATUS & IF IMP EXISTS
 			//-------------------------------------------------------
 			$clusterImpCount = $this->_cache->getMapField( 'clusterlog:'.$sessionHash, 'imps' );
 			$logWasTargetted = $this->_cache->getMapField( 'clusterlog:'.$sessionHash, 'targetted' );
 
 			if (
-				$supply['status'] == 'health_check'  
+				$supply['status'] == 'health_check' 
 				|| $supply['status'] == 'testing' 
 				|| ( $clusterImpCount && $logWasTargetted )
 			)
+			//-------------------------------------------------------			
 			// LOG & SKIP RETARGETING
+			//-------------------------------------------------------
 			{
 				// if cluster log already exists increment, otherwise create new
 				if ( $clusterImpCount )
@@ -139,7 +141,9 @@
 				$this->_cache->incrementMapField( 'supply:'.$placementId, 'imps' );
 			}
 			else
+			//-------------------------------------------------------				
 			// LOG AND DO RETARGETING
+			//-------------------------------------------------------
 			{
 				// match cluster targeting. If not, skip log and retargeting
 				$cluster = $this->_cache->getMap( 'cluster:'.$supply['cluster'] );
@@ -201,10 +205,9 @@
 			//-------------------------------------
 			// RENDER
 			//-------------------------------------
-			
 			if ( !$this->_registry->adCode )
 				echo 'fake code';
-			
+
 			// pass sid for testing
 			//$this->_registry->sid = $sessionHash;
 			echo $sessionHash.': ';
