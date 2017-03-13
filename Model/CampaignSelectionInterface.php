@@ -8,7 +8,7 @@
 	interface CampaignSelectionInterface
 	{
 
-		public function run ( array $campaigns_tags, array $options = null ); // bool
+		public function run ( array $campaigns_tags = null, array $options = null ); // bool
 
 		/*
 			options = [
@@ -16,9 +16,7 @@
 			]
 		*/			
 
-		public function getCampaignId ( );
-
-		public function getTag ( );
+		public function getAdCode ( );
 
 	}
 	

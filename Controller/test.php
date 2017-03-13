@@ -33,34 +33,77 @@
 
 			$geolocation->detect( $ip );
 
-			$cache->setMap( 'supply:2',  array(
+			//test testing status
+			$cache->setMap( 'supply:1',  [
+				'frequency_cap'	  => 10,
+				'payout'		  => 2,
+				'model'			  => 'CPM',
+				'cluster'		  => 5,
+				'status'		  => 'testing',
+				'imps'			  => 0
+			]);
+
+			// test normal
+			$cache->setMap( 'supply:2',  [
 				'frequency_cap'	  => 20,
 				'payout'		  => 5,
 				'model'			  => 'CPM',
-				'cluster'		  => 5
-			));
+				'cluster'		  => 5,
+				'status'		  => 'active',
+				'imps'			  => 0
+			]);
 
-			$cache->addToSet( 'cluster:5', [ 10, 11, 12 ] );
 
-			$cache->setMap( 'cp:10',  array(
+			$cache->setMap( 'supply:3',  [
+				'frequency_cap'	  => 100,
+				'payout'		  => 3,
+				'model'			  => 'CPM',
+				'cluster'		  => 6,
+				'status'		  => 'testing',
+				'imps'			  => 0
+			]);	
+
+			$cache->setMap( 'supply:4',  [
+				'frequency_cap'	  => 100,
+				'payout'		  => 3,
+				'model'			  => 'RS',
+				'cluster'		  => 6,
+				'status'		  => 'testing',
+				'imps'			  => 0
+			]);										
+
+			$cache->setMap( 'supply:4',  [
+				'frequency_cap'	  => 100,
+				'payout'		  => 3,
+				'model'			  => 'RS',
+				'cluster'		  => 6,
+				'status'		  => 'testing',
+				'imps'			  => 0
+			]);									
+
+			$cache->addToSet( 'clusterlist:5', [ 10, 11, 12 ] );
+			$cache->addToSet( 'clusterlist:6', [ 20, 21, 22 ] );
+			$cache->addToSet( 'clusterlist:7', [ 30, 31, 32 ] );
+
+			$cache->setMap( 'cluster:5',  [
 				'ad_code'		  => 100,
 				'country'		  => $geolocation->getCountryCode(),
 				'connection_type' => $geolocation->getConnectionType(),
 				'carrier'		  => $geolocation->getMobileCarrier(),
 				'os'			  => $deviceDetection->getOs()
-			));        	
+			]);        	
 
 
-			$cache->setMap( 'cp:11',  array(
+			$cache->setMap( 'cluster:6',  [
 				'ad_code'		  => 200,
 				'country'		  => $geolocation->getCountryCode(),
 				'connection_type' => $geolocation->getConnectionType(),
 				'carrier'		  => $geolocation->getMobileCarrier(),
 				'os'			  => $deviceDetection->getOs()
-			));     	
+			]);     	
 
 
-			$cache->setMap( 'cp:12',  array(
+			$cache->setMap( 'cluster:7',  array(
 				'ad_code'		  => 300,
 				'country'		  => $geolocation->getCountryCode(),
 				'connection_type' => $geolocation->getConnectionType(),

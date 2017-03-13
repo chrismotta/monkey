@@ -2,7 +2,8 @@
 
 	namespace Aff\Ad\Model;
 
-	use Aff\Framework;
+	use Aff\Framework,
+		Aff\Config;
 
 
 	class Ad extends Framework\ModelAbstract
@@ -12,11 +13,13 @@
 		private $_geolocation;
 		private $_cache;
 		private $_campaignSelection;
+		private $_fraudDetection;
 
 
 		public function __construct ( 
-			CampaignSelectionInterface $campaignSelection,
 			Framework\Registry $registry,
+			CampaignSelectionInterface $campaignSelection,
+			Framework\AdServing\FraudDetectionInterface $fraudDetection,			
 			Framework\Database\KeyValueInterface $cache,
 			Framework\Device\DetectionInterface $deviceDetection,
 			Framework\TCP\Geolocation\SourceInterface $geolocation
@@ -28,12 +31,19 @@
 			$this->_geolocation     	= $geolocation;
 			$this->_cache           	= $cache;
 			$this->_campaignSelection	= $campaignSelection;
+			$this->_fraudDetection		= $fraudDetection;
 		}
 
 
 		public function render ( $placement_id )
 		{
+			//-------------------------------------
+			// GET USER DATA
+			//-------------------------------------
+
 			$userAgent = $this->_registry->httpRequest->getUserAgent();
+			$sessionId = $this->_registry->httpRequest->getParam('session_id');
+			$timestamp = $this->_registry->httpRequest->getTimestamp();
 
 			// check if load balancer exists. If exists get original ip from X-Forwarded-For header
 			$ip = $this->_registry->httpRequest->getHeader('X-Forwarded-For');
@@ -46,10 +56,10 @@
 				return false;
 			}
 
+
 			//-------------------------------------
 			// MATCH SUPPLY (placement_id)
 			//-------------------------------------
-			
 			$placementId = $this->_registry->httpRequest->getPathElement(0);
 
 			if ( !$placementId )
@@ -67,48 +77,9 @@
 			}
 
 
-			//------------------------------------------
-			// MATCH CAMPAIGNS FROM CLUSTER (cluster_id)
-			//------------------------------------------			
-			$this->_campaignSelection->run( 
-					$this->_cache->getSet( 'cluster:'.$supply['cluster'] ) 
-			);
-
-			$campaignId = $this->_campaignSelection->getCampaignId();
-
-
 			//-------------------------------------
-			// MATCH CAMPAIGN (campaign id)
+			// CALCULATE SESSION HASH
 			//-------------------------------------
-			$demand = $this->_cache->getMap( 'cp:'.$campaignId );
-
-			if ( !$demand )
-			{
-				$this->_createWarning( 'No campaign match', 'M000003A', 404 );
-				return false;
-			}
-
-			$device = $this->_getDeviceData( $userAgent );
-			$this->_geolocation->detect( $ip );
-
-			if ( 
-				$demand['os'] != $device['os']
-				|| $demand['country'] != $this->_geolocation->getCountryCode() 
-				|| $demand['connection_type'] != $this->_geolocation->getConnectionType()  
-			)
-			{
-				$this->_createWarning( 'No campaign match', 'M000004A', 404 );
-				return false;				
-			}	
-
-
-			//-------------------------------------
-			// IDENTIFY USER (session_id)
-			//-------------------------------------
-			// agregar pub_id level2 y ver como los guardamos
-			$publisherId = $this->_registry->httpRequest->getParam('pubid');
-			$sessionId 	 = $this->_registry->httpRequest->getParam('sessionid');
-			$timestamp   = $this->_registry->httpRequest->getTimestamp();
 
 			// check if sessionId comes as request parameter and use it to calculate sessionHash. Otherwise use ip + userAgent
 			if ( $sessionId )
@@ -129,60 +100,99 @@
 					$ip . 
 					$userAgent								
 				);
-			}
+			}			
 
 
-			//-------------------------------------
-			// LOG
-			//-------------------------------------
-			$impCount = $this->_cache->getMapField( 'log:'.$sessionHash, 'imps' );
+			//-------------------------------------------------------
+			// CHECK IF IMPRESION EXISTS OR PLACEMENT IS IN TEST MODE
+			//-------------------------------------------------------
+			$clusterImpCount = $this->_cache->getMapField( 'clusterlog:'.$sessionHash, 'imps' );
+			$logWasTargetted = $this->_cache->getMapField( 'clusterlog:'.$sessionHash, 'targetted' );
 
-			// check frequency cap for the current session
-			if ( !$impCount || $impCount < $supply['frequency_cap'] )
+			if (
+				$supply['status'] == 'health_check'  
+				|| $supply['status'] == 'testing' 
+				|| ( $clusterImpCount && $logWasTargetted )
+			)
+			// LOG & SKIP RETARGETING
 			{
-				// save log data
-				if ( $impCount )
+				// if cluster log already exists increment, otherwise create new
+				if ( $clusterImpCount )
 				{
-					$this->_cache->incrementMapField( 'log:'.$sessionHash, 'imps' );
+					echo '1, ';
+					$this->_incrementClusterLog( $sessionHash, $supply, $clusterImpCount );
 				}
 				else
 				{
-					// save session hash into a list in order to find all logs in ETL script
-					$this->_cache->addToSet( 'logs', $sessionHash );
+					echo '2, ';
+					$device = $this->_getDeviceData( $userAgent );
+					$this->_geolocation->detect( $ip );
 
-					$this->_cache->setMap( 'log:'.$sessionHash, [
-						'sid'             => $sessionHash, 
-						'campaign_id'	  => $campaignId, 
-						'timestamp'       => $timestamp, 
-						'ip'	          => $ip, 
-						'country'         => $this->_geolocation->getCountryCode(), 
-						'connection_type' => $this->_geolocation->getConnectionType(), 
-						'carrier'		  => $this->_geolocation->getMobileCarrier(), 
-						'os'			  => $device['os'], 
-						'os_version'	  => $device['os_version'], 
-						'device'		  => $device['device'], 
-						'device_model'    => $device['device_model'], 
-						'device_brand'	  => $device['device_brand'], 
-						'browser'		  => $device['browser'], 
-						'browser_version' => $device['browser_version'],
-						'imps'			  => 1
-					]);
+					$this->_newClusterLog ( $sessionHash, $timestamp, $ip, $supply, $device );
 				}
 
+				// if health check is completed with this impression, set placement status to 'active'
+				if ( $supply['imps'] < Config\Ad::PLACEMENT_HEALTH )
+					$this->_cache->setMapField( 'supply:'.$placementId, 'status', 'active' );
 
-				switch ( $supply['model'] )
+				// increment placement's impression count
+				$this->_cache->incrementMapField( 'supply:'.$placementId, 'imps' );
+			}
+			else
+			// LOG AND DO RETARGETING
+			{
+				// match cluster targeting. If not, skip log and retargeting
+				$cluster = $this->_cache->getMap( 'cluster:'.$supply['cluster'] );
+				$device  = $this->_getDeviceData( $userAgent );
+
+				$this->_geolocation->detect( $ip );
+				echo '3, ';
+
+				if ( $this->_matchClusterTargeting( $cluster, $device ) )
 				{
-					case 'CPM':
-						if ( $data )
-							$this->_cache->increment( 'cost:'.$sessionHash, $supply['payout']/1000 );	
-						else 
-							$this->_cache->set( 'cost:'.$sessionHash, $supply['payout']/1000 );
-					break;
-					case 'RS':
-						if ( !$data )
-							$this->_cache->set( 'cost:'.$sessionHash, 0 );
-					break;
-				}
+					echo '4, ';
+					$this->_fraudDetection->analize([
+						'request_type'	=> 'display',
+						'ip_address'	=> $ip,
+						'session_id'	=> $sessionHash,
+						'source_id'		=> ''
+					]);
+
+					// if fraud detection passes, log and do retargeting
+					if ( $this->_fraudDetection->getRiskLevel() < Config\Ad::FRAUD_RISK_LVL )
+					{
+						echo '5, ';
+						$this->_newClusterLog ( $sessionHash, $timestamp, $ip, $supply, $device );
+
+						// mark cluster log as targetted
+						$this->_cache->setMapField( 'clusterlog:'.$sessionHash, 'targetted', true );
+
+						$campaigns = $this->_cache->getSet( 'clusterlist:'.$supply['cluster'] );
+						$clickIDs  = [];
+
+						foreach ( $campaigns as $campaignId )
+						{
+							$clickId    = md5( $campaignId.$sessionHash );
+							$clickIDs[] = $clickId;
+							
+							// campaign log
+							if ( $this->_cache->isInSet( 'campaignlogs', $clickId ) )
+							{
+								echo '6, ';
+								$this->_cache->incrementMapField( 'campaignlog:'.$clickId, 'imps' );
+							}
+							else
+							{
+								echo '7, ';
+								$this->_newCampaignLog( $clickId, $sessionHash, $timestamp, $ip, $supply, $device );	
+							}
+						}
+
+						// campaign selection with retargeting
+						$this->_campaignSelection->run( $clickIDs );
+						$this->_registry->adCode = $this->_campaignSelection->getAdCode();					
+					}
+				}	
 			}
 
 
@@ -190,21 +200,119 @@
 			// RENDER
 			//-------------------------------------
 			// Store ad's code to be acceded by view and/or controller
-			$this->_registry->tag = $this->_campaignSelection->getTag();
+
 
 			// pass sid for testing
 			//$this->_registry->sid = $sessionHash;
-
+			echo $sessionHash.': ';
 			// Tell controller process completed successfully
 			$this->_registry->status = 200;
 			return true;
 		}
 
 
+		private function _newClusterLog ( 
+			$sessionHash, 
+			$timestamp,
+			$ip,
+			array $supply,
+			array $device
+		)
+		{
+			// save session hash into a set in order to know all logs from ETL script
+			$this->_cache->addToSet( 'clusterlogs', $sessionHash );			
+
+			// calculate cost
+			switch ( $supply['model'] )
+			{
+				case 'CPM':
+					$cost = $supply['payout']/1000;
+				break;
+				default:
+					$cost = 0;
+				break;
+			}
+
+			// write cluster log
+			$this->_cache->setMap( 'clusterlog:'.$sessionHash, [
+				'timestamp'       => $timestamp, 
+				'ip'	          => $ip, 
+				'country'         => $this->_geolocation->getCountryCode(), 
+				'connection_type' => $this->_geolocation->getConnectionType(), 
+				'carrier'		  => $this->_geolocation->getMobileCarrier(), 
+				'os'			  => $device['os'], 
+				'os_version'	  => $device['os_version'], 
+				'device'		  => $device['device'], 
+				'device_model'    => $device['device_model'], 
+				'device_brand'	  => $device['device_brand'], 
+				'browser'		  => $device['browser'], 
+				'browser_version' => $device['browser_version'], 
+				'imps'			  => 1, 
+				'targetted'		  => false, 
+				'cost'			  => $cost
+			]);
+		}
+
+
+		private function _incrementClusterLog ( $sessionHash, array $supply, $clusterImpCount )
+		{
+			// if imp count is under frequency cap, add cost
+			if ( $clusterImpCount < $supply['frequency_cap'] )
+			{
+				switch ( $supply['model'] )
+				{
+					case 'CPM':
+						$this->_cache->incrementMapField( 'clusterlog:'.$sessionHash, 'cost', $supply['payout']/1000 );
+					break;
+				}
+			}
+
+			$this->_cache->incrementMapField( 'clusterlog:'.$sessionHash, 'imps' );
+		}
+
+
+		private function _newCampaignLog ( 
+			$clickId,
+			$sessionHash, 
+			$timestamp,
+			$ip,
+			array $supply,
+			array $device
+		)
+		{
+			// save campaign log index into a set in order to know all logs from ETL script
+			$this->_cache->addToSet( 'clickids', $clickId );
+
+			// write campaign log
+			$this->_cache->setMap( 'campaignlog:'.$clickId, [
+				'sid'             => $sessionHash, 
+				'timestamp'       => $timestamp, 
+				'imps'			  => 1
+			]);
+		}
+
+
+		private function _matchClusterTargeting ( $cluster, array $deviceData )
+		{
+			if ( 
+				$cluster 
+				&& $cluster['os'] == $deviceData['os'] 
+				&& $cluster['country'] == $this->_geolocation->getCountryCode() 
+				&& $cluster['connection_type'] == $this->_geolocation->getConnectionType()   
+			)
+			{
+				return true;
+			}
+
+			return false;
+		}
+
+
 		private function _getDeviceData( $ua )
 		{
-			$data = msgpack_unpack( $this->_cache->get( 'ua:'.md5($ua) ) );
-			
+			$data = msgpack_unpack( $this->_cache->get( 'ua:'.md5( $ua ) ) );
+
+			// if devie data is not in cache, use device detection
 			if ( !$data )
 			{
 				$this->_deviceDetection->detect( $ua );
@@ -219,7 +327,11 @@
 					'browser_version' => $this->_deviceDetection->getBrowserVersion() 
 				);
 
-				$this->_cache->set( 'ua:'.md5($ua), msgpack_pack( $data ) );			
+				$uaHash = md5($ua);
+				$this->_cache->set( 'ua:'.$uaHash, msgpack_pack( $data ) );
+
+				// add user agent identifier to a set in order to be found by ETL
+				$this->_cache->addToSet( 'user_agents', $uaHash );
 			}
 
 			return $data;

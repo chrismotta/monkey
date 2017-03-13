@@ -38,6 +38,20 @@
 	});	
 
 
+	// PRIVATE AUTOLOADER
+	spl_autoload_register( function ( $className ) {
+
+		$fileName = '..' . DIRECTORY_SEPARATOR . str_replace( 'Aff\\Priv\\', 'priv\\', $className ). '.php';		
+		$fileName = str_replace( '\\', DIRECTORY_SEPARATOR, $fileName );
+
+		if ( is_readable($fileName)  )
+		{
+			require_once( $fileName );	
+		}	
+
+	});	
+
+
 	// CONFIG AUTOLOADER
 	spl_autoload_register( function ( $className ) {
 

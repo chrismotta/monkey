@@ -1,5 +1,5 @@
 <?php
 	
-	echo $registry->tag;
+	echo $registry->adCode;
 
 ?>
