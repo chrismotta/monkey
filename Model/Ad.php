@@ -164,7 +164,6 @@
 
 					// if fraud detection passes, log and do retargeting
 					if ( $this->_fraudDetection->getRiskLevel() < Config\Ad::FRAUD_RISK_LVL )
-					//if ( true )
 					{
 						echo '5, ';
 						$this->_newClusterLog ( $sessionHash, $timestamp, $ip, $supply, $device, true );
