@@ -60,15 +60,13 @@
 			//-------------------------------------
 			// MATCH SUPPLY (placement_id)
 			//-------------------------------------
-			$placementId = $this->_registry->httpRequest->getPathElement(0);
-
-			if ( !$placementId )
+			if ( !$placement_id )
 			{
 				$this->_createWarning( 'Placement not found', 'M000001A', 404 );
 				return false;				
 			}
 
-			$supply = $this->_cache->getMap( 'supply:'.$placementId );
+			$supply = $this->_cache->getMap( 'supply:'.$placement_id );
 
 			if ( !$supply )
 			{
@@ -87,7 +85,7 @@
 				$sessionHash = \md5( 
 					\date( 'Y-m-d', $timestamp ) . 
 					$supply['cluster'] . 
-					$placementId . 
+					$placement_id . 
 					$sessionId 
 				);
 			}
@@ -97,7 +95,7 @@
 				$sessionHash = \md5( 
 					\date( 'Y-m-d', $timestamp ) .
 					$supply['cluster'] .
-					$placementId . 
+					$placement_id . 
 					$ip . 
 					$userAgent								
 				);
@@ -105,13 +103,15 @@
 				$sessionHash = \md5(rand());
 			}			
 
-
 			//-------------------------------------------------------
 			// CHECK PLACEMENT STATUS & IF IMP EXISTS
 			//-------------------------------------------------------
 			$clusterImpCount = $this->_cache->getMapField( 'clusterlog:'.$sessionHash, 'imps' );
 			$logWasTargetted = $this->_cache->getMapField( 'clusterlog:'.$sessionHash, 'targetted' );
-			echo $supply['status'];
+			echo 'placement status: '.$supply['status'].'<br>';
+			echo 'placement imps: '.$supply['imps'].'<br>';
+			echo 'cluster imps: '.$clusterImpCount.'<br>';
+						echo 'process tracking: ';
 			if (
 				$supply['status'] == 'health_check' 
 				|| $supply['status'] == 'testing' 
@@ -124,12 +124,12 @@
 				// if cluster log already exists increment, otherwise create new
 				if ( $clusterImpCount )
 				{
-					echo '1, ';
+					echo 'no retargeting => increment log';
 					$this->_incrementClusterLog( $sessionHash, $supply, $clusterImpCount );
 				}
 				else
 				{
-					echo '2, ';
+					echo 'no retargeting => new log';
 					$device = $this->_getDeviceData( $userAgent );
 					$this->_geolocation->detect( $ip );
 
@@ -138,10 +138,10 @@
 
 				// if health check is completed with this impression, set placement status to 'active'
 				if ( $supply['imps']+1 == Config\Ad::PLACEMENT_HEALTH )
-					$this->_cache->setMapField( 'supply:'.$placementId, 'status', 'active' );
+					$this->_cache->setMapField( 'supply:'.$placement_id, 'status', 'active' );
 
 				// increment placement's impression count
-				$this->_cache->incrementMapField( 'supply:'.$placementId, 'imps' );
+				$this->_cache->incrementMapField( 'supply:'.$placement_id, 'imps' );
 			}
 			else
 			//-------------------------------------------------------				
@@ -153,11 +153,11 @@
 				$device  = $this->_getDeviceData( $userAgent );
 
 				$this->_geolocation->detect( $ip );
-				echo '3, ';
+				echo 'retargeting ';
 
 				if ( $this->_matchClusterTargeting( $cluster, $device ) )
 				{
-					echo '4, ';
+					echo '=> matched cluster targeting ';
 					$this->_fraudDetection->analize([
 						'request_type'	=> 'display',
 						'ip_address'	=> $ip,
@@ -168,7 +168,7 @@
 					// if fraud detection passes, log and do retargeting
 					if ( $this->_fraudDetection->getRiskLevel() < Config\Ad::FRAUD_RISK_LVL )
 					{
-						echo '5, ';
+						echo '=> passed fraud detection ';
 						$this->_newClusterLog ( $sessionHash, $timestamp, $ip, $supply, $device, true );
 
 						$campaigns = $this->_cache->getSet( 'clusterlist:'.$supply['cluster'] );
@@ -179,7 +179,7 @@
 							$clickId    = md5( $campaignId.$sessionHash );
 							$clickIDs[] = $clickId;
 
-							$this->_newCampaignLog( $clickId, $sessionHash, $timestamp );	
+							$this->_newCampaignLog( $clickId, $sessionHash, $campaignId );	
 						}
 
 						// run campaign selection with retargeting
@@ -195,12 +195,11 @@
 			//-------------------------------------
 			// RENDER
 			//-------------------------------------
-			if ( !$this->_registry->adCode )
-				echo 'fake code';
+				
 
 			// pass sid for testing
 			//$this->_registry->sid = $sessionHash;
-			echo $sessionHash.': ';
+			echo '<br>session_hash: '.$sessionHash.'<br><br>';
 			// Tell controller process completed successfully
 			$this->_registry->status = 200;
 			return true;
@@ -270,8 +269,8 @@
 
 		private function _newCampaignLog ( 
 			$clickId,
-			$sessionHash, 
-			$timestamp
+			$sessionHash,
+			$campaignId
 		)
 		{
 			// save campaign log index into a set in order to know all logs from ETL script
@@ -280,8 +279,9 @@
 			// write campaign log
 			$this->_cache->setMap( 'campaignlog:'.$clickId, [
 				'session_hash'    => $sessionHash, 
-				'timestamp'       => $timestamp, 
-				'imps'			  => 1
+				'campaign_id'	  => $campaignId,
+				'click_time'      => null,
+				'conv_time'		  => null
 			]);
 		}
 

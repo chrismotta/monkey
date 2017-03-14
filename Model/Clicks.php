@@ -1,6 +1,6 @@
 <?php
 
-	namespace Aff\Tr\Model;
+	namespace Aff\Ad\Model;
 
 	use Aff\Framework;
 
@@ -8,54 +8,38 @@
 	class Clicks extends Framework\ModelAbstract
 	{
 
+		private $_cache;
+
 		public function __construct ( 
-			Framework\Registry $registry
+			Framework\Registry $registry,
+			Framework\Database\KeyValueInterface $cache
 		)
 		{
 			parent::__construct( $registry );
+
+			$this->_cache = $cache;
 		}
 
 
-		public function log ( $session_hash )
+		public function log ( $click_id )
 		{
-			//-------------------------------------
-			// IDENTIFY USER (session_id)
-			//-------------------------------------			
-			$sessionHash = $this->_registry->httpRequest->getPathElement(0);
-
-			if ( !$sessionHash )
-			{
-				$this->_createWarning( 'Bad request', 'M000000C', 400 );
-				return false;
-			}
-
 			//-------------------------------------
 			// LOG
 			//-------------------------------------
-			$log = msgpack_unpack( $this->_cache->get( 'log:'. $sessionHash ) );
-
-			// check if click matches an impression
-			if ( !$log )
+			if ( $click_id && \is_integer( $click_id ) && $this->_cache->exists( 'campaignlog:'. $click_id ) )
 			{
-				$this->_createWarning( 'Not found', 'M000001C', 404 );
-				return false;				
+				$this->_cache->setMapField( 'campaignlog:'. $click_id, 'click_time', $this->_registry->httpRequest->getTimestamp() );
 			}
-
-			$clickCount = $this->_cache->get( 'clicks:'. $sessionHash );
-
-			// save click, increment if already exists one
-			if ( $clickCount )
-				$this->_cache->increment( 'clicks:'.$sessionHash );
-			else
-				$this->_cache->set( 'clicks:'.$sessionHash, 1 );
-
 
 			//-------------------------------------
 			// NOTIFY AFFILIATE  
 			//-------------------------------------
-			$campaign = msgpack_unpack( $this->_cache->get( 'cp:'. $sessionHash ) );
-			$this->_registry->url = str_replace( '{CLICK_ID}', $sessionHash, $campaign['callback'], 1 );
+        	$httpClient 	   = new Framework\TCP\HTTP\Client\cURL();
+			$httpClientRequest = new Framework\TCP\HTTP\Client\Request();
 
+			$httpClientRequest->setURL( \str_replace( '{CLICK_ID}', $click_id, $campaign['callback'] ) );
+
+			$httpClient->send( $httpClientRequest );
 
 			//-------------------------------------
 			// RENDER
@@ -64,15 +48,6 @@
 			$this->_registry->status = 200;
 			return true;
 		}
-
-
-		private function _createWarning( $message, $code, $status )
-		{
-			$this->_registry->message = $message;
-			$this->_registry->code    = $code;
-			$this->_registry->status  = $status;			
-		}
-
 
 	}
 

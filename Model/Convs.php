@@ -1,6 +1,6 @@
 <?php
 
-	namespace Aff\Tr\Model;
+	namespace Aff\Ad\Model;
 
 	use Aff\Framework;
 
@@ -8,41 +8,29 @@
 	class Convs extends Framework\ModelAbstract
 	{
 
+		private $_cache;
+
 		public function __construct ( 
-			Framework\Registry $registry
+			Framework\Registry $registry,
+			Framework\Database\KeyValueInterface $cache
 		)
 		{
 			parent::__construct( $registry );
+
+			$this->_cache = $cache;
 		}
 
 
-		public function log ( $session_hash )
+		public function log ( $click_id )
 		{
-			//-------------------------------------
-			// IDENTIFY USER (session_id)
-			//-------------------------------------			
-			$sessionHash = $this->_registry->httpRequest->getPathElement(0);
-
-			if ( !$sessionHash )
-			{
-				$this->_createWarning( 'Bad request', 'M000000I', 400 );
-				return false;
-			}
-
 			//-------------------------------------
 			// LOG
 			//-------------------------------------
-			$log = msgpack_unpack( $this->_cache->get( 'log:'. $sessionHash ) );
-
-
-			$convCount = $this->_cache->get( 'convs:'. $sessionHash );
-
-			// save conv, increment if already exists one
-			if ( $convCount )
-				$this->_cache->increment( 'convs:'.$sessionHash );
-			else
-				$this->_cache->set( 'convs:'.$sessionHash, 1 );
-
+			if ( $click_id && \is_integer( $click_id ) )
+			{
+				$clickCount = $this->_cache->addToSet( 'convs', $click_id );
+				$clickCount = $this->_cache->set( 'conv:'. $click_id, $this->_registry->httpRequest->getTimestamp() );
+			}
 
 			//-------------------------------------
 			// RENDER
@@ -51,15 +39,6 @@
 			$this->_registry->status = 200;
 			return true;
 		}
-
-
-		private function _createWarning( $message, $code, $status )
-		{
-			$this->_registry->message = $message;
-			$this->_registry->code    = $code;
-			$this->_registry->status  = $status;			
-		}
-
 
 	}
 
