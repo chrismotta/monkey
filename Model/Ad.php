@@ -93,6 +93,7 @@
 			}
 			else
 			{
+				/*
 				$sessionHash = \md5( 
 					\date( 'Y-m-d', $timestamp ) .
 					$supply['cluster'] .
@@ -100,6 +101,8 @@
 					$ip . 
 					$userAgent								
 				);
+				*/
+				$sessionHash = \md5(rand());
 			}			
 
 
@@ -176,7 +179,7 @@
 							$clickId    = md5( $campaignId.$sessionHash );
 							$clickIDs[] = $clickId;
 
-							$this->_newCampaignLog( $clickId, $sessionHash, $timestamp, $ip, $supply, $device );	
+							$this->_newCampaignLog( $clickId, $sessionHash, $timestamp );	
 						}
 
 						// run campaign selection with retargeting
@@ -268,10 +271,7 @@
 		private function _newCampaignLog ( 
 			$clickId,
 			$sessionHash, 
-			$timestamp,
-			$ip,
-			array $supply,
-			array $device
+			$timestamp
 		)
 		{
 			// save campaign log index into a set in order to know all logs from ETL script
@@ -279,7 +279,7 @@
 
 			// write campaign log
 			$this->_cache->setMap( 'campaignlog:'.$clickId, [
-				'sid'             => $sessionHash, 
+				'session_hash'    => $sessionHash, 
 				'timestamp'       => $timestamp, 
 				'imps'			  => 1
 			]);
@@ -325,7 +325,7 @@
 				$this->_cache->setMap( 'ua:'.$uaHash, $data );
 
 				// add user agent identifier to a set in order to be found by ETL
-				$this->_cache->addToSet( 'user_agents', $uaHash );
+				$this->_cache->addToSet( 'uas', $uaHash );
 			}
 
 			return $data;
