@@ -108,7 +108,7 @@
 			//-------------------------------------------------------
 			$clusterImpCount = $this->_cache->getMapField( 'clusterlog:'.$sessionHash, 'imps' );
 			$logWasTargetted = $this->_cache->getMapField( 'clusterlog:'.$sessionHash, 'targetted' );
-
+			echo $supply['status'];
 			if (
 				$supply['status'] == 'health_check' 
 				|| $supply['status'] == 'testing' 
@@ -134,7 +134,7 @@
 				}
 
 				// if health check is completed with this impression, set placement status to 'active'
-				if ( $supply['imps'] < Config\Ad::PLACEMENT_HEALTH )
+				if ( $supply['imps']+1 == Config\Ad::PLACEMENT_HEALTH )
 					$this->_cache->setMapField( 'supply:'.$placementId, 'status', 'active' );
 
 				// increment placement's impression count
@@ -164,12 +164,10 @@
 
 					// if fraud detection passes, log and do retargeting
 					if ( $this->_fraudDetection->getRiskLevel() < Config\Ad::FRAUD_RISK_LVL )
+					//if ( true )
 					{
 						echo '5, ';
-						$this->_newClusterLog ( $sessionHash, $timestamp, $ip, $supply, $device );
-
-						// mark cluster log as targetted
-						$this->_cache->setMapField( 'clusterlog:'.$sessionHash, 'targetted', true );
+						$this->_newClusterLog ( $sessionHash, $timestamp, $ip, $supply, $device, true );
 
 						$campaigns = $this->_cache->getSet( 'clusterlist:'.$supply['cluster'] );
 						$clickIDs  = [];
@@ -179,17 +177,7 @@
 							$clickId    = md5( $campaignId.$sessionHash );
 							$clickIDs[] = $clickId;
 
-							// if campaign log exists increment, otherwise create new
-							if ( $this->_cache->isInSet( 'campaignlogs', $clickId ) )
-							{
-								echo '6, ';
-								$this->_cache->incrementMapField( 'campaignlog:'.$clickId, 'imps' );
-							}
-							else
-							{
-								echo '7, ';
-								$this->_newCampaignLog( $clickId, $sessionHash, $timestamp, $ip, $supply, $device );	
-							}
+							$this->_newCampaignLog( $clickId, $sessionHash, $timestamp, $ip, $supply, $device );	
 						}
 
 						// run campaign selection with retargeting
@@ -222,7 +210,8 @@
 			$timestamp,
 			$ip,
 			array $supply,
-			array $device
+			array $device,
+			$targetted = false
 		)
 		{
 			// save session hash into a set in order to know all logs from ETL script
@@ -253,8 +242,8 @@
 				'device_brand'	  => $device['device_brand'], 
 				'browser'		  => $device['browser'], 
 				'browser_version' => $device['browser_version'], 
-				'imps'			  => 1, 
-				'targetted'		  => false, 
+				'imps'			  => 1, 				
+				'targetted'		  => $targetted, 
 				'cost'			  => $cost
 			]);
 		}
@@ -316,7 +305,8 @@
 
 		private function _getDeviceData( $ua )
 		{
-			$data = msgpack_unpack( $this->_cache->get( 'ua:'.md5( $ua ) ) );
+			$uaHash = md5($ua);
+			$data   = $this->_cache->getMap( 'ua:'.$uaHash );
 
 			// if devie data is not in cache, use device detection
 			if ( !$data )
@@ -333,8 +323,7 @@
 					'browser_version' => $this->_deviceDetection->getBrowserVersion() 
 				);
 
-				$uaHash = md5($ua);
-				$this->_cache->set( 'ua:'.$uaHash, msgpack_pack( $data ) );
+				$this->_cache->setMap( 'ua:'.$uaHash, $data );
 
 				// add user agent identifier to a set in order to be found by ETL
 				$this->_cache->addToSet( 'user_agents', $uaHash );

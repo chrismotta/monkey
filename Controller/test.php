@@ -39,7 +39,7 @@
 				'payout'		  => 2,
 				'model'			  => 'CPM',
 				'cluster'		  => 5,
-				'status'		  => 'testing',
+				'status'		  => 'health_check',
 				'imps'			  => 0
 			]);
 
@@ -49,7 +49,7 @@
 				'payout'		  => 5,
 				'model'			  => 'CPM',
 				'cluster'		  => 5,
-				'status'		  => 'active',
+				'status'		  => 'health_check',
 				'imps'			  => 0
 			]);
 
@@ -59,7 +59,7 @@
 				'payout'		  => 3,
 				'model'			  => 'CPM',
 				'cluster'		  => 6,
-				'status'		  => 'testing',
+				'status'		  => 'active',
 				'imps'			  => 0
 			]);	
 
@@ -72,7 +72,7 @@
 				'imps'			  => 0
 			]);										
 
-			$cache->setMap( 'supply:4',  [
+			$cache->setMap( 'supply:5',  [
 				'frequency_cap'	  => 100,
 				'payout'		  => 3,
 				'model'			  => 'RS',
@@ -81,9 +81,9 @@
 				'imps'			  => 0
 			]);									
 
-			$cache->addToSet( 'clusterlist:5', [ 10, 11, 12 ] );
-			$cache->addToSet( 'clusterlist:6', [ 20, 21, 22 ] );
-			$cache->addToSet( 'clusterlist:7', [ 30, 31, 32 ] );
+			$cache->addToSet( 'clusterlist:5', [ 10, 11, 12, 13, 14 ] );
+			$cache->addToSet( 'clusterlist:6', [ 20, 21, 22, 23, 24 ] );
+			$cache->addToSet( 'clusterlist:7', [ 30, 31, 32, 33, 34 ] );
 
 			$cache->setMap( 'cluster:5',  [
 				'ad_code'		  => 100,
