@@ -46,6 +46,7 @@
 			//-------------------------------------
 			// Tell controller process completed successfully
 			$this->_registry->status = 200;
+
 			return true;
 		}
 

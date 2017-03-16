@@ -295,8 +295,7 @@
 			$this->_cache->setMap( 'campaignlog:'.$clickId, [
 				'session_hash'    => $sessionHash, 
 				'campaign_id'	  => $campaignId,
-				'click_time'      => null,
-				'conv_time'		  => null
+				'click_time'      => null
 			]);
 		}
 
