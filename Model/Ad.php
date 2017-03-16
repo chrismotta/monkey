@@ -163,7 +163,7 @@
 						'request_type'	=> 'display',
 						'ip_address'	=> $ip,
 						'session_id'	=> $sessionHash,
-						'source_id'		=> $placentId
+						'source_id'		=> $placementId
 					]);
 
 					// if fraud detection passes, log and do retargeting
