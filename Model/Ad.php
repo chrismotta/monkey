@@ -108,6 +108,7 @@
 			//-------------------------------------------------------
 			$clusterImpCount = $this->_cache->getMapField( 'clusterlog:'.$sessionHash, 'imps' );
 			$logWasTargetted = $this->_cache->getMapField( 'clusterlog:'.$sessionHash, 'targetted' );
+
 			echo 'placement status: '.$supply['status'].'<br>';
 			echo 'placement imps: '.$supply['imps'].'<br>';
 			echo 'cluster imps: '.$clusterImpCount.'<br>';
@@ -194,8 +195,20 @@
 
 			//-------------------------------------
 			// RENDER
-			//-------------------------------------
-				
+			//-------------------------------------			
+			
+			// select static creative from cluster based on placement's size
+			$creativeSize = $supply['size'];
+			if ( isset( $cluster ) )
+			{
+				$this->_registry->creativeUrl = $cluster['static_cp_'.$creativeSize];
+				$this->_registry->landingUrl  = $cluster['static_cp_land'];
+			}
+			else
+			{
+				$this->_registry->creativeUrl = $this->_cache->getMapField( 'cluster:'.$supply['cluster'], 'static_cp_'.$creativeSize );
+				$this->_registry->landingUrl  = $this->_cache->getMapField( 'cluster:'.$supply['cluster'], 'static_cp_land' );				
+			}
 
 			// pass sid for testing
 			//$this->_registry->sid = $sessionHash;

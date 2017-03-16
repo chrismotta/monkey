@@ -1,2 +1,2 @@
-<a href=""><img src="http://www.apple.com/itunesaffiliates/beatles/beatles_300x50.jpg"/></a>
+<a href=" <?php echo $registry->landingUrl; ?> "><img src="<?php echo $registry->creativeUrl; ?>"/></a>
 <?php echo $registry->adCode; ?>

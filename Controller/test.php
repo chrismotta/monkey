@@ -40,7 +40,8 @@
 				'model'			  => 'CPM',
 				'cluster'		  => 5,
 				'status'		  => 'health_check',
-				'imps'			  => 0
+				'imps'			  => 0,
+				'size'			  => '320x50'
 			]);
 
 			// test normal
@@ -50,7 +51,8 @@
 				'model'			  => 'CPM',
 				'cluster'		  => 5,
 				'status'		  => 'health_check',
-				'imps'			  => 0
+				'imps'			  => 0,
+				'size'			  => '300x250'
 			]);
 
 
@@ -60,7 +62,8 @@
 				'model'			  => 'CPM',
 				'cluster'		  => 6,
 				'status'		  => 'active',
-				'imps'			  => 0
+				'imps'			  => 0,
+				'size'			  => '320x50'
 			]);	
 
 			$cache->setMap( 'supply:4',  [
@@ -69,7 +72,8 @@
 				'model'			  => 'RS',
 				'cluster'		  => 6,
 				'status'		  => 'testing',
-				'imps'			  => 0
+				'imps'			  => 0,
+				'size'			  => '320x50'
 			]);										
 
 			$cache->setMap( 'supply:5',  [
@@ -78,7 +82,8 @@
 				'model'			  => 'RS',
 				'cluster'		  => 6,
 				'status'		  => 'testing',
-				'imps'			  => 0
+				'imps'			  => 0,
+				'size'			  => '320x50'
 			]);									
 
 			$cache->addToSet( 'clusterlist:5', [ 10, 11, 12, 13, 14 ] );
@@ -86,11 +91,14 @@
 			$cache->addToSet( 'clusterlist:7', [ 30, 31, 32, 33, 34 ] );
 
 			$cache->setMap( 'cluster:5',  [
-				'ad_code'		  => 100,
-				'country'		  => $geolocation->getCountryCode(),
-				'connection_type' => $geolocation->getConnectionType(),
-				'carrier'		  => $geolocation->getMobileCarrier(),
-				'os'			  => $deviceDetection->getOs()
+				'ad_code'		   => 100,
+				'country'		   => $geolocation->getCountryCode(),
+				'connection_type'  => $geolocation->getConnectionType(),
+				'carrier'		   => $geolocation->getMobileCarrier(),
+				'static_cp_land'   => 'https://www.google.com.ar',
+				'static_cp_300x250'=> 'http://www.adsthatwow.com/image/Audi_expandable.jpg',
+				'static_cp_320x50' => 'http://img.photobucket.com/albums/v74/Vincered/hoxasig.jpg',	
+				'os'			   => $deviceDetection->getOs()
 			]);        	
 
 
@@ -99,6 +107,9 @@
 				'country'		  => $geolocation->getCountryCode(),
 				'connection_type' => $geolocation->getConnectionType(),
 				'carrier'		  => $geolocation->getMobileCarrier(),
+				'static_cp_land'   => 'https://www.google.com.ar',
+				'static_cp_300x250'=> 'http://www.adsthatwow.com/image/Audi_expandable.jpg',
+				'static_cp_320x50' => 'http://img.photobucket.com/albums/v74/Vincered/hoxasig.jpg',	
 				'os'			  => $deviceDetection->getOs()
 			]);     	
 
@@ -108,6 +119,9 @@
 				'country'		  => $geolocation->getCountryCode(),
 				'connection_type' => $geolocation->getConnectionType(),
 				'carrier'		  => $geolocation->getMobileCarrier(),
+				'static_cp_land'   => 'https://www.google.com.ar',
+				'static_cp_300x250'=> 'http://www.adsthatwow.com/image/Audi_expandable.jpg',
+				'static_cp_320x50' => 'http://img.photobucket.com/albums/v74/Vincered/hoxasig.jpg',	
 				'os'			  => $deviceDetection->getOs()
 			));     	
 
