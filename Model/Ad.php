@@ -163,7 +163,7 @@
 						'request_type'	=> 'display',
 						'ip_address'	=> $ip,
 						'session_id'	=> $sessionHash,
-						'source_id'		=> ''
+						'source_id'		=> 'bigwo'
 					]);
 
 					// if fraud detection passes, log and do retargeting
