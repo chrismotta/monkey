@@ -26,7 +26,7 @@
 			//-------------------------------------
 			// LOG
 			//-------------------------------------
-			if ( $click_id && \is_integer( $click_id ) && $this->_cache->exists( 'campaignlog:'. $click_id ) )
+			if ( $click_id && $this->_cache->exists( 'campaignlog:'. $click_id ) )
 			{
 				$this->_cache->setMapField( 'campaignlog:'. $click_id, 'click_time', $this->_registry->httpRequest->getTimestamp() );
 			}

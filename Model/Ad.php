@@ -183,6 +183,8 @@
 							$this->_newCampaignLog( $clickId, $sessionHash, $campaignId );	
 						}
 
+						echo '<br>click IDs:'.json_encode($clickIDs);
+
 						// run campaign selection with retargeting
 						$this->_campaignSelection->run( $clickIDs );
 

@@ -26,7 +26,7 @@
 			//-------------------------------------
 			// LOG
 			//-------------------------------------
-			if ( $click_id && \is_integer( $click_id ) )
+			if ( $click_id )
 			{
 				$clickCount = $this->_cache->addToSet( 'convs', $click_id );
 				$clickCount = $this->_cache->set( 'conv:'. $click_id, $this->_registry->httpRequest->getTimestamp() );
