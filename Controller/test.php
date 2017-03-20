@@ -99,7 +99,7 @@
 				'static_cp_300x250'=> 'http://www.adsthatwow.com/image/Audi_expandable.jpg',
 				'static_cp_320x50' => 'http://img.photobucket.com/albums/v74/Vincered/hoxasig.jpg',	
 				'os'			   => $deviceDetection->getOs()
-			]);        	
+			]);
 
 
 			$cache->setMap( 'cluster:6',  [
@@ -111,7 +111,7 @@
 				'static_cp_300x250'=> 'http://www.adsthatwow.com/image/Audi_expandable.jpg',
 				'static_cp_320x50' => 'http://img.photobucket.com/albums/v74/Vincered/hoxasig.jpg',	
 				'os'			  => $deviceDetection->getOs()
-			]);     	
+			]);
 
 
 			$cache->setMap( 'cluster:7',  array(
@@ -123,7 +123,7 @@
 				'static_cp_300x250'=> 'http://www.adsthatwow.com/image/Audi_expandable.jpg',
 				'static_cp_320x50' => 'http://img.photobucket.com/albums/v74/Vincered/hoxasig.jpg',	
 				'os'			  => $deviceDetection->getOs()
-			));     	
+			));
 
         }
 

@@ -58,17 +58,17 @@
 
 
 			//-------------------------------------
-			// MATCH SUPPLY (placement_id)
+			// MATCH PLACEMENT (placement_id)
 			//-------------------------------------
 			if ( !$placement_id )
 			{
 				$this->_createWarning( 'Placement not found', 'M000001A', 404 );
-				return false;				
+				return false;
 			}
 
-			$supply = $this->_cache->getMap( 'supply:'.$placement_id );
+			$placement = $this->_cache->getMap( 'placement:'.$placement_id );
 
-			if ( !$supply )
+			if ( !$placement )
 			{
 				$this->_createWarning( 'Placement not found', 'M000002A', 404 );
 				return false;				
@@ -84,7 +84,7 @@
 			{
 				$sessionHash = \md5( 
 					\date( 'Y-m-d', $timestamp ) . 
-					$supply['cluster'] . 
+					$placement['cluster'] . 
 					$placement_id . 
 					$sessionId 
 				);
@@ -94,7 +94,7 @@
 				/*
 				$sessionHash = \md5( 
 					\date( 'Y-m-d', $timestamp ) .
-					$supply['cluster'] .
+					$placement['cluster'] .
 					$placement_id . 
 					$ip . 
 					$userAgent								
@@ -109,13 +109,13 @@
 			$clusterImpCount = $this->_cache->getMapField( 'clusterlog:'.$sessionHash, 'imps' );
 			$logWasTargetted = $this->_cache->getMapField( 'clusterlog:'.$sessionHash, 'targetted' );
 
-			echo 'placement status: '.$supply['status'].'<br>';
-			echo 'placement imps: '.$supply['imps'].'<br>';
+			echo 'placement status: '.$placement['status'].'<br>';
+			echo 'placement imps: '.$placement['imps'].'<br>';
 			echo 'cluster imps: '.$clusterImpCount.'<br>';
 						echo 'process tracking: ';
 			if (
-				$supply['status'] == 'health_check' 
-				|| $supply['status'] == 'testing' 
+				$placement['status'] == 'health_check' 
+				|| $placement['status'] == 'testing' 
 				|| ( $clusterImpCount && $logWasTargetted )
 			)
 			//-------------------------------------------------------			
@@ -126,7 +126,7 @@
 				if ( $clusterImpCount )
 				{
 					echo 'no retargeting => increment log';
-					$this->_incrementClusterLog( $sessionHash, $supply, $clusterImpCount );
+					$this->_incrementClusterLog( $sessionHash, $placement, $clusterImpCount );
 				}
 				else
 				{
@@ -134,15 +134,15 @@
 					$device = $this->_getDeviceData( $userAgent );
 					$this->_geolocation->detect( $ip );
 
-					$this->_newClusterLog ( $sessionHash, $timestamp, $ip, $supply, $device );
+					$this->_newClusterLog ( $sessionHash, $timestamp, $ip, $placement, $placementId, $device, false );
 				}
 
 				// if health check is completed with this impression, set placement status to 'active'
-				if ( $supply['imps']+1 == Config\Ad::PLACEMENT_HEALTH )
-					$this->_cache->setMapField( 'supply:'.$placement_id, 'status', 'active' );
+				if ( $placement['imps']+1 == Config\Ad::PLACEMENT_HEALTH )
+					$this->_cache->setMapField( 'placement:'.$placement_id, 'status', 'active' );
 
 				// increment placement's impression count
-				$this->_cache->incrementMapField( 'supply:'.$placement_id, 'imps' );
+				$this->_cache->incrementMapField( 'placement:'.$placement_id, 'imps' );
 			}
 			else
 			//-------------------------------------------------------				
@@ -150,7 +150,7 @@
 			//-------------------------------------------------------
 			{
 				// match cluster targeting. If not, skip log and retargeting
-				$cluster = $this->_cache->getMap( 'cluster:'.$supply['cluster'] );
+				$cluster = $this->_cache->getMap( 'cluster:'.$placement['cluster'] );
 				$device  = $this->_getDeviceData( $userAgent );
 
 				$this->_geolocation->detect( $ip );
@@ -159,7 +159,7 @@
 				if ( $this->_matchClusterTargeting( $cluster, $device ) )
 				{
 					echo '=> matched cluster targeting ';
-					$this->_fraudDetection->analize([
+					$detectionSuccess = $this->_fraudDetection->analize([
 						'request_type'	=> 'display',
 						'ip_address'	=> $ip,
 						'session_id'	=> $sessionHash,
@@ -167,12 +167,12 @@
 					]);
 
 					// if fraud detection passes, log and do retargeting
-					if ( $this->_fraudDetection->getRiskLevel() < Config\Ad::FRAUD_RISK_LVL )
+					if ( $detectionSuccess && $this->_fraudDetection->getRiskLevel() < Config\Ad::FRAUD_RISK_LVL )
 					{
 						echo '=> passed fraud detection ';
-						$this->_newClusterLog ( $sessionHash, $timestamp, $ip, $supply, $device, true );
+						$this->_newClusterLog ( $sessionHash, $timestamp, $ip, $placement, $placementId, $device, true );
 
-						$campaigns = $this->_cache->getSet( 'clusterlist:'.$supply['cluster'] );
+						$campaigns = $this->_cache->getSet( 'clusterlist:'.$placement['cluster'] );
 						$clickIDs  = [];
 
 						foreach ( $campaigns as $campaignId )
@@ -200,7 +200,7 @@
 			//-------------------------------------			
 			
 			// select static creative from cluster based on placement's size
-			$creativeSize = $supply['size'];
+			$creativeSize = $placement['size'];
 			if ( isset( $cluster ) )
 			{
 				$this->_registry->creativeUrl = $cluster['static_cp_'.$creativeSize];
@@ -208,8 +208,8 @@
 			}
 			else
 			{
-				$this->_registry->creativeUrl = $this->_cache->getMapField( 'cluster:'.$supply['cluster'], 'static_cp_'.$creativeSize );
-				$this->_registry->landingUrl  = $this->_cache->getMapField( 'cluster:'.$supply['cluster'], 'static_cp_land' );				
+				$this->_registry->creativeUrl = $this->_cache->getMapField( 'cluster:'.$placement['cluster'], 'static_cp_'.$creativeSize );
+				$this->_registry->landingUrl  = $this->_cache->getMapField( 'cluster:'.$placement['cluster'], 'static_cp_land' );				
 			}
 
 			// pass sid for testing
@@ -225,8 +225,9 @@
 			$sessionHash, 
 			$timestamp,
 			$ip,
-			array $supply,
+			array $placement,
 			array $device,
+			$placementId,
 			$targetted = false
 		)
 		{
@@ -234,10 +235,10 @@
 			$this->_cache->addToSet( 'clusterlogs', $sessionHash );			
 
 			// calculate cost
-			switch ( $supply['model'] )
+			switch ( $placement['model'] )
 			{
 				case 'CPM':
-					$cost = $supply['payout']/1000;
+					$cost = $placement['payout']/1000;
 				break;
 				default:
 					$cost = 0;
@@ -246,6 +247,8 @@
 
 			// write cluster log
 			$this->_cache->setMap( 'clusterlog:'.$sessionHash, [
+				'cluster'		  => $placement['cluster'],
+				'placement'		  => $placement_id,
 				'timestamp'       => $timestamp, 
 				'ip'	          => $ip, 
 				'country'         => $this->_geolocation->getCountryCode(), 
@@ -265,15 +268,15 @@
 		}
 
 
-		private function _incrementClusterLog ( $sessionHash, array $supply, $clusterImpCount )
+		private function _incrementClusterLog ( $sessionHash, array $placement, $clusterImpCount )
 		{
 			// if imp count is under frequency cap, add cost
-			if ( $clusterImpCount < $supply['frequency_cap'] )
+			if ( $clusterImpCount < $placement['frequency_cap'] )
 			{
-				switch ( $supply['model'] )
+				switch ( $placement['model'] )
 				{
 					case 'CPM':
-						$this->_cache->incrementMapField( 'clusterlog:'.$sessionHash, 'cost', $supply['payout']/1000 );
+						$this->_cache->incrementMapField( 'clusterlog:'.$sessionHash, 'cost', $placement['payout']/1000 );
 					break;
 				}
 			}
