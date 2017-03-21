@@ -34,7 +34,7 @@
 			$geolocation->detect( $ip );
 
 			//test testing status
-			$cache->setMap( 'supply:1',  [
+			$cache->setMap( 'placement:1',  [
 				'frequency_cap'	  => 10,
 				'payout'		  => 2,
 				'model'			  => 'CPM',
@@ -45,7 +45,7 @@
 			]);
 
 			// test normal
-			$cache->setMap( 'supply:2',  [
+			$cache->setMap( 'placement:2',  [
 				'frequency_cap'	  => 20,
 				'payout'		  => 5,
 				'model'			  => 'CPM',
@@ -56,7 +56,7 @@
 			]);
 
 
-			$cache->setMap( 'supply:3',  [
+			$cache->setMap( 'placement:3',  [
 				'frequency_cap'	  => 100,
 				'payout'		  => 3,
 				'model'			  => 'CPM',
@@ -66,7 +66,7 @@
 				'size'			  => '320x50'
 			]);	
 
-			$cache->setMap( 'supply:4',  [
+			$cache->setMap( 'placement:4',  [
 				'frequency_cap'	  => 100,
 				'payout'		  => 3,
 				'model'			  => 'RS',
@@ -76,7 +76,7 @@
 				'size'			  => '320x50'
 			]);										
 
-			$cache->setMap( 'supply:5',  [
+			$cache->setMap( 'placement:5',  [
 				'frequency_cap'	  => 100,
 				'payout'		  => 3,
 				'model'			  => 'RS',
@@ -91,7 +91,6 @@
 			$cache->addToSet( 'clusterlist:7', [ 30, 31, 32, 33, 34 ] );
 
 			$cache->setMap( 'cluster:5',  [
-				'ad_code'		   => 100,
 				'country'		   => $geolocation->getCountryCode(),
 				'connection_type'  => $geolocation->getConnectionType(),
 				'carrier'		   => $geolocation->getMobileCarrier(),
@@ -103,7 +102,6 @@
 
 
 			$cache->setMap( 'cluster:6',  [
-				'ad_code'		  => 200,
 				'country'		  => $geolocation->getCountryCode(),
 				'connection_type' => $geolocation->getConnectionType(),
 				'carrier'		  => $geolocation->getMobileCarrier(),
@@ -115,7 +113,6 @@
 
 
 			$cache->setMap( 'cluster:7',  array(
-				'ad_code'		  => 300,
 				'country'		  => $geolocation->getCountryCode(),
 				'connection_type' => $geolocation->getConnectionType(),
 				'carrier'		  => $geolocation->getMobileCarrier(),

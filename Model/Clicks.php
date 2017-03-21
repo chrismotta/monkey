@@ -26,20 +26,26 @@
 			//-------------------------------------
 			// LOG
 			//-------------------------------------
-			if ( $click_id && $this->_cache->exists( 'campaignlog:'. $click_id ) )
+			$campaignLog = $this->_cache->getMap( 'campaignlog:'. $click_id );
+
+			if ( $campaignLog )
 			{
 				$this->_cache->setMapField( 'campaignlog:'. $click_id, 'click_time', $this->_registry->httpRequest->getTimestamp() );
+
+				$callbackURL = $this->_cache->get( 'callback:'.$campaignLog['campaign_id'] );
+
+				//-------------------------------------
+				// NOTIFY AFFILIATE  
+				//-------------------------------------
+	        	$httpClient 	   = new Framework\TCP\HTTP\Client\cURL();
+				$httpClientRequest = new Framework\TCP\HTTP\Client\Request();
+
+				$httpClientRequest->setURL( \str_replace( '{CLICK_ID}', $click_id, $callbackURL ) );
+
+				$httpClient->send( $httpClientRequest );				
 			}
 
-			//-------------------------------------
-			// NOTIFY AFFILIATE  
-			//-------------------------------------
-        	$httpClient 	   = new Framework\TCP\HTTP\Client\cURL();
-			$httpClientRequest = new Framework\TCP\HTTP\Client\Request();
 
-			$httpClientRequest->setURL( \str_replace( '{CLICK_ID}', $click_id, $campaign['callback'] ) );
-
-			$httpClient->send( $httpClientRequest );
 
 			//-------------------------------------
 			// RENDER

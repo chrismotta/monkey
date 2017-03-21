@@ -112,7 +112,7 @@
 			echo 'placement status: '.$placement['status'].'<br>';
 			echo 'placement imps: '.$placement['imps'].'<br>';
 			echo 'cluster imps: '.$clusterImpCount.'<br>';
-						echo 'process tracking: ';
+			echo 'process tracking: ';
 			if (
 				$placement['status'] == 'health_check' 
 				|| $placement['status'] == 'testing' 
@@ -134,7 +134,7 @@
 					$device = $this->_getDeviceData( $userAgent );
 					$this->_geolocation->detect( $ip );
 
-					$this->_newClusterLog ( $sessionHash, $timestamp, $ip, $placement, $placementId, $device, false );
+					$this->_newClusterLog ( $sessionHash, $timestamp, $ip, $placement, $device, $placement_id,  false );
 				}
 
 				// if health check is completed with this impression, set placement status to 'active'
@@ -170,7 +170,7 @@
 					if ( $detectionSuccess && $this->_fraudDetection->getRiskLevel() < Config\Ad::FRAUD_RISK_LVL )
 					{
 						echo '=> passed fraud detection ';
-						$this->_newClusterLog ( $sessionHash, $timestamp, $ip, $placement, $placementId, $device, true );
+						$this->_newClusterLog ( $sessionHash, $timestamp, $ip, $placement, $device, $placement_id, true );
 
 						$campaigns = $this->_cache->getSet( 'clusterlist:'.$placement['cluster'] );
 						$clickIDs  = [];
@@ -231,9 +231,6 @@
 			$targetted = false
 		)
 		{
-			// save session hash into a set in order to know all logs from ETL script
-			$this->_cache->addToSet( 'clusterlogs', $sessionHash );			
-
 			// calculate cost
 			switch ( $placement['model'] )
 			{
@@ -245,11 +242,14 @@
 				break;
 			}
 
+			// save cluster log index into a set in order to know all logs from ETL script
+			$this->_cache->addToSortedSet( 'clusterlogs', 0, $sessionHash );
+
 			// write cluster log
 			$this->_cache->setMap( 'clusterlog:'.$sessionHash, [
-				'cluster'		  => $placement['cluster'],
-				'placement'		  => $placement_id,
-				'timestamp'       => $timestamp, 
+				'cluster_id'	  => $placement['cluster'],
+				'placement_id'	  => $placementId,
+				'imp_time'        => $timestamp, 
 				'ip'	          => $ip, 
 				'country'         => $this->_geolocation->getCountryCode(), 
 				'connection_type' => $this->_geolocation->getConnectionType(), 
@@ -292,7 +292,7 @@
 		)
 		{
 			// save campaign log index into a set in order to know all logs from ETL script
-			$this->_cache->addToSet( 'clickids', $clickId );
+			$this->_cache->addToSortedSet( 'clickids', 0, $clickId );
 
 			// write campaign log
 			$this->_cache->setMap( 'campaignlog:'.$clickId, [
@@ -328,7 +328,7 @@
 			if ( !$data )
 			{
 				$this->_deviceDetection->detect( $ua );
-
+				echo 'aca';
 				$data = array(
 					'os' 			  => $this->_deviceDetection->getOs(),
 					'os_version'	  => $this->_deviceDetection->getOsVersion(), 
