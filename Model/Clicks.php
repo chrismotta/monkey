@@ -32,7 +32,7 @@
 			{
 				$this->_cache->setMapField( 'campaignlog:'. $click_id, 'click_time', $this->_registry->httpRequest->getTimestamp() );
 
-				$callbackURL = $this->_cache->get( 'callback:'.$campaignLog['campaign_id'] );
+				$callbackURL = $this->_cache->getMapField( 'campaign:'.$campaignLog['campaign_id'], 'callback' );
 
 				//-------------------------------------
 				// NOTIFY AFFILIATE  

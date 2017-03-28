@@ -40,7 +40,6 @@
 			//-------------------------------------
 			// GET & VALIDATE USER DATA
 			//-------------------------------------
-
 			$userAgent = $this->_registry->httpRequest->getUserAgent();
 			$sessionId = $this->_registry->httpRequest->getParam('session_id');
 			$timestamp = $this->_registry->httpRequest->getTimestamp();
@@ -198,7 +197,7 @@
 			//-------------------------------------
 			// RENDER
 			//-------------------------------------			
-			
+
 			// select static creative from cluster based on placement's size
 			$creativeSize = $placement['size'];
 			if ( isset( $cluster ) )
@@ -243,7 +242,7 @@
 			}
 
 			// save cluster log index into a set in order to know all logs from ETL script
-			$this->_cache->addToSortedSet( 'clusterlogs', 0, $sessionHash );
+			$this->_cache->addToSortedSet( 'clusterlogs', $timestamp, $sessionHash );
 
 			// write cluster log
 			$this->_cache->setMap( 'clusterlog:'.$sessionHash, [
@@ -292,7 +291,7 @@
 		)
 		{
 			// save campaign log index into a set in order to know all logs from ETL script
-			$this->_cache->addToSortedSet( 'clickids', 0, $clickId );
+			$this->_cache->addToSortedSet( 'clickids', $timestamp, $clickId );
 
 			// write campaign log
 			$this->_cache->setMap( 'campaignlog:'.$clickId, [
@@ -328,7 +327,7 @@
 			if ( !$data )
 			{
 				$this->_deviceDetection->detect( $ua );
-				echo 'aca';
+				echo '<br>using device detector: yes';
 				$data = array(
 					'os' 			  => $this->_deviceDetection->getOs(),
 					'os_version'	  => $this->_deviceDetection->getOsVersion(), 
@@ -355,7 +354,6 @@
 			$this->_registry->code    = $code;
 			$this->_registry->status  = $status;			
 		}
-
 
 	}
 
