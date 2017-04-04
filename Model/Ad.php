@@ -125,7 +125,7 @@
 				if ( $clusterImpCount )
 				{
 					echo 'no retargeting => increment log';
-					$this->_incrementClusterLog( $sessionHash, $placement, $clusterImpCount );
+					$this->_incrementClusterLog( $sessionHash, $placement, $clusterImpCount, $timestamp );
 				}
 				else
 				{
@@ -179,7 +179,7 @@
 							$clickId    = md5( $campaignId.$sessionHash );
 							$clickIDs[] = $clickId;
 
-							$this->_newCampaignLog( $clickId, $sessionHash, $campaignId );	
+							$this->_newCampaignLog( $clickId, $sessionHash, $campaignId, $timestamp );	
 						}
 
 						echo '<br>click IDs:'.json_encode($clickIDs);
@@ -267,7 +267,7 @@
 		}
 
 
-		private function _incrementClusterLog ( $sessionHash, array $placement, $clusterImpCount )
+		private function _incrementClusterLog ( $sessionHash, array $placement, $clusterImpCount, $timestamp )
 		{
 			// if imp count is under frequency cap, add cost
 			if ( $clusterImpCount < $placement['frequency_cap'] )
@@ -279,7 +279,7 @@
 					break;
 				}
 			}
-
+			$this->_cache->addToSortedSet( 'clusterlogs', $timestamp, $sessionHash );
 			$this->_cache->incrementMapField( 'clusterlog:'.$sessionHash, 'imps' );
 		}
 
@@ -287,7 +287,8 @@
 		private function _newCampaignLog ( 
 			$clickId,
 			$sessionHash,
-			$campaignId
+			$campaignId,
+			$timestamp
 		)
 		{
 			// save campaign log index into a set in order to know all logs from ETL script

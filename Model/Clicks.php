@@ -42,7 +42,7 @@
 
 				$httpClientRequest->setURL( \str_replace( '{CLICK_ID}', $click_id, $callbackURL ) );
 
-				$httpClient->send( $httpClientRequest );				
+				$httpClient->send( $httpClientRequest );
 			}
 
 

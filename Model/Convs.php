@@ -28,7 +28,7 @@
 			//-------------------------------------
 			if ( $click_id )
 			{
-				$clickCount = $this->_cache->addToSet( 'convs', $click_id );
+				$clickCount = $this->_cache->addToSortedSet( 'convs', $this->_registry->httpRequest->getTimestamp(), $click_id  );
 				$clickCount = $this->_cache->set( 'conv:'. $click_id, $this->_registry->httpRequest->getTimestamp() );
 			}
 
