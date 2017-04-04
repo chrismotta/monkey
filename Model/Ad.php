@@ -242,7 +242,7 @@
 			}
 
 			// save cluster log index into a set in order to know all logs from ETL script
-			$this->_cache->addToSortedSet( 'clusterlogs', $timestamp, $sessionHash );
+			$this->_cache->addToSortedSet( 'session_hashes', $timestamp, $sessionHash );
 
 			// write cluster log
 			$this->_cache->setMap( 'clusterlog:'.$sessionHash, [
