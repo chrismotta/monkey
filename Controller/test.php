@@ -38,7 +38,8 @@
 				'frequency_cap'	  => 10,
 				'payout'		  => 2,
 				'model'			  => 'CPM',
-				'cluster'		  => 5,
+				'cluster_id'	  => 5,
+				'cluster_name'	  => 'Cluster 5',
 				'status'		  => 'health_check',
 				'imps'			  => 0,
 				'size'			  => '320x50'
@@ -49,7 +50,8 @@
 				'frequency_cap'	  => 20,
 				'payout'		  => 5,
 				'model'			  => 'CPM',
-				'cluster'		  => 5,
+				'cluster_id'	  => 5,
+				'cluster_name'	  => 'Cluster 5',
 				'status'		  => 'health_check',
 				'imps'			  => 0,
 				'size'			  => '300x250'
@@ -60,17 +62,20 @@
 				'frequency_cap'	  => 100,
 				'payout'		  => 3,
 				'model'			  => 'CPM',
-				'cluster'		  => 6,
+				'cluster_id'	  => 6,
+				'cluster_name'	  => 'Cluster 6',
 				'status'		  => 'active',
 				'imps'			  => 0,
 				'size'			  => '320x50'
 			]);	
 
+
 			$cache->setMap( 'placement:4',  [
 				'frequency_cap'	  => 100,
 				'payout'		  => 3,
 				'model'			  => 'RS',
-				'cluster'		  => 6,
+				'cluster_id'	  => 6,
+				'cluster_name'	  => 'Cluster 6',
 				'status'		  => 'testing',
 				'imps'			  => 0,
 				'size'			  => '320x50'
@@ -80,7 +85,8 @@
 				'frequency_cap'	  => 100,
 				'payout'		  => 3,
 				'model'			  => 'RS',
-				'cluster'		  => 6,
+				'cluster_id'	  => 6,
+				'cluster_name'	  => 'Cluster 6',
 				'status'		  => 'testing',
 				'imps'			  => 0,
 				'size'			  => '320x50'

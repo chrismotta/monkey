@@ -73,7 +73,6 @@
 				return false;				
 			}
 
-
 			//-------------------------------------
 			// CALCULATE SESSION HASH
 			//-------------------------------------
@@ -83,7 +82,7 @@
 			{
 				$sessionHash = \md5( 
 					\date( 'Y-m-d', $timestamp ) . 
-					$placement['cluster'] . 
+					$placement['cluster_id'] . 
 					$placement_id . 
 					$sessionId 
 				);
@@ -93,7 +92,7 @@
 				/*
 				$sessionHash = \md5( 
 					\date( 'Y-m-d', $timestamp ) .
-					$placement['cluster'] .
+					$placement['cluster_id'] .
 					$placement_id . 
 					$ip . 
 					$userAgent								
@@ -149,7 +148,7 @@
 			//-------------------------------------------------------
 			{
 				// match cluster targeting. If not, skip log and retargeting
-				$cluster = $this->_cache->getMap( 'cluster:'.$placement['cluster'] );
+				$cluster = $this->_cache->getMap( 'cluster:'.$placement['cluster_id'] );
 				$device  = $this->_getDeviceData( $userAgent );
 
 				$this->_geolocation->detect( $ip );
@@ -171,7 +170,7 @@
 						echo '=> passed fraud detection ';
 						$this->_newClusterLog ( $sessionHash, $timestamp, $ip, $placement, $device, $placement_id, true );
 
-						$campaigns = $this->_cache->getSet( 'clusterlist:'.$placement['cluster'] );
+						$campaigns = $this->_cache->getSet( 'clusterlist:'.$placement['cluster_id'] );
 						$clickIDs  = [];
 
 						foreach ( $campaigns as $campaignId )
@@ -207,8 +206,8 @@
 			}
 			else
 			{
-				$this->_registry->creativeUrl = $this->_cache->getMapField( 'cluster:'.$placement['cluster'], 'static_cp_'.$creativeSize );
-				$this->_registry->landingUrl  = $this->_cache->getMapField( 'cluster:'.$placement['cluster'], 'static_cp_land' );				
+				$this->_registry->creativeUrl = $this->_cache->getMapField( 'cluster:'.$placement['cluster_id'], 'static_cp_'.$creativeSize );
+				$this->_registry->landingUrl  = $this->_cache->getMapField( 'cluster:'.$placement['cluster_id'], 'static_cp_land' );
 			}
 
 			// pass sid for testing
@@ -222,11 +221,11 @@
 
 		private function _newClusterLog ( 
 			$sessionHash, 
-			$timestamp,
-			$ip,
-			array $placement,
-			array $device,
-			$placementId,
+			$timestamp, 
+			$ip, 
+			array $placement, 
+			array $device, 
+			$placementId, 
 			$targetted = false
 		)
 		{
@@ -246,8 +245,9 @@
 
 			// write cluster log
 			$this->_cache->setMap( 'clusterlog:'.$sessionHash, [
-				'cluster_id'	  => $placement['cluster'],
-				'placement_id'	  => $placementId,
+				'cluster_id'	  => $placement['cluster_id'], 
+				'cluster_name'	  => $placement['cluster_name'],  
+				'placement_id'	  => $placementId, 
 				'imp_time'        => $timestamp, 
 				'ip'	          => $ip, 
 				'country'         => $this->_geolocation->getCountryCode(), 
