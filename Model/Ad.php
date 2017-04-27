@@ -329,7 +329,7 @@
 			if ( !$data )
 			{
 				$this->_deviceDetection->detect( $ua );
-				echo '<br>using device detector: yes';
+				//echo '<br>using device detector: yes';
 				$data = array(
 					'os' 			  => $this->_deviceDetection->getOs(),
 					'os_version'	  => $this->_deviceDetection->getOsVersion(), 
