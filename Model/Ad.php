@@ -107,10 +107,10 @@
 			$clusterImpCount = $this->_cache->getMapField( 'clusterlog:'.$sessionHash, 'imps' );
 			$logWasTargetted = $this->_cache->getMapField( 'clusterlog:'.$sessionHash, 'targetted' );
 
-			echo 'placement status: '.$placement['status'].'<br>';
-			echo 'placement imps: '.$placement['imps'].'<br>';
-			echo 'cluster imps: '.$clusterImpCount.'<br>';
-			echo 'process tracking: ';
+			//echo 'placement status: '.$placement['status'].'<br>';
+			//echo 'placement imps: '.$placement['imps'].'<br>';
+			//echo 'cluster imps: '.$clusterImpCount.'<br>';
+			//echo 'process tracking: ';
 			if (
 				$placement['status'] == 'health_check' 
 				|| $placement['status'] == 'testing' 
@@ -123,12 +123,12 @@
 				// if cluster log already exists increment, otherwise create new
 				if ( $clusterImpCount )
 				{
-					echo 'no retargeting => increment log';
+					//echo 'no retargeting => increment log';
 					$this->_incrementClusterLog( $sessionHash, $placement, $clusterImpCount, $timestamp );
 				}
 				else
 				{
-					echo 'no retargeting => new log';
+					//echo 'no retargeting => new log';
 					$device = $this->_getDeviceData( $userAgent );
 					$this->_geolocation->detect( $ip );
 
@@ -152,11 +152,12 @@
 				$device  = $this->_getDeviceData( $userAgent );
 
 				$this->_geolocation->detect( $ip );
-				echo 'retargeting ';
+
+				// echo 'retargeting ';
 
 				if ( $this->_matchClusterTargeting( $cluster, $device ) )
 				{
-					echo '=> matched cluster targeting ';
+					//echo '=> matched cluster targeting ';
 					$detectionSuccess = $this->_fraudDetection->analize([
 						'request_type'	=> 'display',
 						'ip_address'	=> $ip,
@@ -167,7 +168,7 @@
 					// if fraud detection passes, log and do retargeting
 					if ( $detectionSuccess && $this->_fraudDetection->getRiskLevel() < Config\Ad::FRAUD_RISK_LVL )
 					{
-						echo '=> passed fraud detection ';
+						//echo '=> passed fraud detection ';
 						$this->_newClusterLog ( $sessionHash, $timestamp, $ip, $placement, $device, $placement_id, true );
 
 						$campaigns = $this->_cache->getSet( 'clusterlist:'.$placement['cluster_id'] );
@@ -181,7 +182,7 @@
 							$this->_newCampaignLog( $clickId, $sessionHash, $campaignId, $timestamp );	
 						}
 
-						echo '<br>click IDs:'.json_encode($clickIDs);
+						//echo '<br>click IDs:'.json_encode($clickIDs);
 
 						// run campaign selection with retargeting
 						$this->_campaignSelection->run( $clickIDs );
@@ -212,7 +213,7 @@
 
 			// pass sid for testing
 			//$this->_registry->sid = $sessionHash;
-			echo '<br>session_hash: '.$sessionHash.'<br><br>';
+			//echo '<br>session_hash: '.$sessionHash.'<br><br>';
 			// Tell controller process completed successfully
 			$this->_registry->status = 200;
 			return true;
