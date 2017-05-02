@@ -89,8 +89,8 @@
 			}
 			else
 			{
-				echo '<!-- ip: '.$ip.'<br> -->';
-				echo '<!-- user agent: '.$userAgent.'<br> -->';
+				echo '<!-- ip: '.$ip.' -->';
+				echo '<!-- user agent: '.$userAgent.' -->';
 				$sessionHash = \md5( 
 					\date( 'Y-m-d', $timestamp ) .
 					$placement['cluster_id'] .
@@ -109,9 +109,9 @@
 			$clusterImpCount = $this->_cache->getMapField( 'clusterlog:'.$sessionHash, 'imps' );
 			$logWasTargetted = $this->_cache->getMapField( 'clusterlog:'.$sessionHash, 'targetted' );
 
-			echo '<!-- placement status: '.$placement['status'].'<br> -->';
-			echo '<!-- placement imps: '.$placement['imps'].'<br> -->';
-			echo '<!-- cluster imps: '.$clusterImpCount.'<br> -->';
+			echo '<!-- placement status: '.$placement['status'].' -->';
+			echo '<!-- placement imps: '.$placement['imps'].' -->';
+			echo '<!-- cluster imps: '.$clusterImpCount.' -->';
 			echo '<!-- process tracking: -->';
 			if (
 				$placement['status'] == 'health_check' 
@@ -215,7 +215,7 @@
 
 			// pass sid for testing
 			//$this->_registry->sid = $sessionHash;
-			echo '<!-- <br>session_hash: '.$sessionHash.'<br><br> -->';
+			echo '<!-- session_hash: '.$sessionHash.' -->';
 			// Tell controller process completed successfully
 			$this->_registry->status = 200;
 			return true;
@@ -331,7 +331,7 @@
 			if ( !$data )
 			{
 				$this->_deviceDetection->detect( $ua );
-				echo '<!-- <br>using device detector: yes -->';
+				echo '<!-- using device detector: yes -->';
 				$data = array(
 					'os' 			  => $this->_deviceDetection->getOs(),
 					'os_version'	  => $this->_deviceDetection->getOsVersion(), 
