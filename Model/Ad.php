@@ -89,7 +89,8 @@
 			}
 			else
 			{
-
+				echo '<!-- ip: '.$ip.'<br> -->';
+				echo '<!-- user agent: '.$userAgent.'<br> -->';
 				$sessionHash = \md5( 
 					\date( 'Y-m-d', $timestamp ) .
 					$placement['cluster_id'] .
