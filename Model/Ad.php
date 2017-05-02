@@ -154,11 +154,11 @@
 
 				$this->_geolocation->detect( $ip );
 
-				echo '<!-- retargeting -->';
+				echo '<!-- cs -->';
 
 				if ( $this->_matchClusterTargeting( $cluster, $device ) )
 				{
-					echo '<!-- => matched cluster targeting -->';
+					echo '<!-- => matched cluster cs -->';
 					$detectionSuccess = $this->_fraudDetection->analize([
 						'request_type'	=> 'display',
 						'ip_address'	=> $ip,
