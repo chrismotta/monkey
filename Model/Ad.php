@@ -89,7 +89,7 @@
 			}
 			else
 			{
-				/*
+
 				$sessionHash = \md5( 
 					\date( 'Y-m-d', $timestamp ) .
 					$placement['cluster_id'] .
@@ -97,8 +97,9 @@
 					$ip . 
 					$userAgent								
 				);
-				*/
+				/*
 				$sessionHash = \md5(rand());
+				*/
 			}			
 
 			//-------------------------------------------------------
