@@ -37,6 +37,7 @@
 
 		public function render ( $placement_id )
 		{
+			$this->_cache->increment( 'requests' );
 			//-------------------------------------
 			// GET & VALIDATE USER DATA
 			//-------------------------------------
