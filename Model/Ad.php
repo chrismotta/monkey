@@ -150,16 +150,18 @@
 			// LOG AND DO RETARGETING
 			//-------------------------------------------------------
 			{
+				$this->_cache->increment( 'retargeting' );				
 				// match cluster targeting. If not, skip log and retargeting
 				$cluster = $this->_cache->getMap( 'cluster:'.$placement['cluster_id'] );
 				$device  = $this->_getDeviceData( $userAgent );
 
 				$this->_geolocation->detect( $ip );
-
+				$this->_cache->increment( 'geodetections' );				
 				//echo '<!-- cs -->';
 
 				if ( $this->_matchClusterTargeting( $cluster, $device ) )
 				{
+					$this->_cache->increment( 'matchedtargeting' );
 					//echo '<!-- => matched cluster cs -->';
 					$detectionSuccess = $this->_fraudDetection->analize([
 						'request_type'	=> 'display',
@@ -171,6 +173,7 @@
 					// if fraud detection passes, log and do retargeting
 					if ( $detectionSuccess && $this->_fraudDetection->getRiskLevel() < Config\Ad::FRAUD_RISK_LVL )
 					{
+						$this->_cache->increment( 'passeddetections' );
 						//echo '<!-- => passed fraud detection -->';
 						$this->_newClusterLog ( $sessionHash, $timestamp, $ip, $placement, $device, $placement_id, true );
 
@@ -189,9 +192,9 @@
 
 						// run campaign selection with retargeting
 						$this->_campaignSelection->run( $clickIDs );
-
+						$this->_cache->increment( 'campaignselections' );
 						// store ad's code to be found by view and/or controller
-						$this->_registry->adCode = $this->_campaignSelection->getAdCode();					
+						$this->_registry->adCode = $this->_campaignSelection->getAdCode();
 					}
 				}	
 			}
