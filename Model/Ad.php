@@ -37,7 +37,9 @@
 
 		public function render ( $placement_id )
 		{
-			$this->_cache->increment( 'requests' );
+			if ( Config\Ad::DEBUG_CACHE )
+				$this->_cache->incrementMapField( 'addebug', 'requests' );
+
 			//-------------------------------------
 			// GET & VALIDATE USER DATA
 			//-------------------------------------
@@ -110,10 +112,15 @@
 			$clusterImpCount = $this->_cache->getMapField( 'clusterlog:'.$sessionHash, 'imps' );
 			$logWasTargetted = $this->_cache->getMapField( 'clusterlog:'.$sessionHash, 'targetted' );
 
-			//echo '<!-- placement status: '.$placement['status'].' -->';
-			//echo '<!-- placement imps: '.$placement['imps'].' -->';
-			//echo '<!-- cluster imps: '.$clusterImpCount.' -->';
-			//echo '<!-- process tracking: -->';
+			if ( Config\Ad::DEBUG_HTML )
+			{
+				echo '<!-- placement status: '.$placement['status'].' -->';
+				echo '<!-- placement imps: '.$placement['imps'].' -->';
+				echo '<!-- cluster imps: '.$clusterImpCount.' -->';
+				echo '<!-- process tracking: -->';
+			}
+
+
 			if (
 				$placement['status'] == 'health_check' 
 				|| $placement['status'] == 'testing' 
@@ -126,12 +133,16 @@
 				// if cluster log already exists increment, otherwise create new
 				if ( $clusterImpCount )
 				{
-					//echo '<!-- no cs => increment log -->';
+					if ( Config\Ad::DEBUG_HTML )
+						echo '<!-- no cs => increment log -->';
+
 					$this->_incrementClusterLog( $sessionHash, $placement, $clusterImpCount, $timestamp );
 				}
 				else
 				{
-					//echo '<!-- no cs => new log -->';
+					if ( Config\Ad::DEBUG_HTML )
+						echo '<!-- no cs => new log -->';
+
 					$device = $this->_getDeviceData( $userAgent );
 					$this->_geolocation->detect( $ip );
 
@@ -150,19 +161,31 @@
 			// LOG AND DO RETARGETING
 			//-------------------------------------------------------
 			{
-				$this->_cache->increment( 'retargeting' );				
-				// match cluster targeting. If not, skip log and retargeting
+				if ( Config\Ad::DEBUG_CACHE )
+					$this->_cache->incrementMapField( 'addebug', 'retargeting' );
+				
 				$cluster = $this->_cache->getMap( 'cluster:'.$placement['cluster_id'] );
 				$device  = $this->_getDeviceData( $userAgent );
-
 				$this->_geolocation->detect( $ip );
-				$this->_cache->increment( 'geodetections' );				
-				//echo '<!-- cs -->';
 
+				if ( Config\Ad::DEBUG_CACHE )
+					$this->_cache->incrementMapField( 'addebug', 'geodetections' );
+
+				// log
+				$this->_newClusterLog ( $sessionHash, $timestamp, $ip, $placement, $device, $placement_id, true );
+			
+				if ( Config\Ad::DEBUG_HTML )
+					echo '<!-- cs init -->';
+
+				// match cluster targeting. If not, skip retargeting
 				if ( $this->_matchClusterTargeting( $cluster, $device ) )
 				{
-					$this->_cache->increment( 'matchedtargeting' );
-					//echo '<!-- => matched cluster cs -->';
+					if ( Config\Ad::DEBUG_CACHE )
+						$this->_cache->incrementMapField( 'addebug', 'target_matches' );
+
+					if ( Config\Ad::DEBUG_HTML )
+						echo '<!-- matched cluster targeting -->';
+
 					$detectionSuccess = $this->_fraudDetection->analize([
 						'request_type'	=> 'display',
 						'ip_address'	=> $ip,
@@ -173,9 +196,11 @@
 					// if fraud detection passes, log and do retargeting
 					if ( $detectionSuccess && $this->_fraudDetection->getRiskLevel() < Config\Ad::FRAUD_RISK_LVL )
 					{
-						$this->_cache->increment( 'passeddetections' );
-						//echo '<!-- => passed fraud detection -->';
-						$this->_newClusterLog ( $sessionHash, $timestamp, $ip, $placement, $device, $placement_id, true );
+						if ( Config\Ad::DEBUG_CACHE )
+							$this->_cache->incrementMapField( 'addebug', 'passed_fraud_detect' );
+
+						if ( Config\Ad::DEBUG_HTML )
+							echo '<!-- fraud detection passed -->';
 
 						$campaigns = $this->_cache->getSet( 'clusterlist:'.$placement['cluster_id'] );
 						$clickIDs  = [];
@@ -192,10 +217,16 @@
 
 						// run campaign selection with retargeting
 						$this->_campaignSelection->run( $clickIDs );
-						$this->_cache->increment( 'campaignselections' );
+						
+						if ( Config\Ad::DEBUG_CACHE )
+							$this->_cache->incrementMapField( 'addebug', 'campaign_selections' );
+
+						if ( Config\Ad::DEBUG_HTML )
+							echo '<!-- cs ok -->';
+
 						// store ad's code to be found by view and/or controller
 						$this->_registry->adCode = $this->_campaignSelection->getAdCode();
-					}
+					}					
 				}	
 			}
 
