@@ -93,9 +93,9 @@
 			]);									
 
 			$cache->setMap( 'cluster:5',  [
-				'country'		   => $geolocation->getCountryCode(),
-				'connection_type'  => $geolocation->getConnectionType(),
-				'carrier'		   => $geolocation->getMobileCarrier(),
+				'country'		   => null,
+				'connection_type'  => null,
+				'carrier'		   => null,
 				'static_cp_land'   => 'http://www.themedialab.co/',
 				'static_cp_300x250'=> 'http://www.adsthatwow.com/image/Audi_expandable.jpg',
 				'static_cp_320x50' => 'https://0.s3.envato.com/files/188320305/320x50.jpg',	
@@ -104,9 +104,9 @@
 
 
 			$cache->setMap( 'cluster:6',  [
-				'country'		  => $geolocation->getCountryCode(),
-				'connection_type' => $geolocation->getConnectionType(),
-				'carrier'		  => $geolocation->getMobileCarrier(),
+				'country'		  => null,
+				'connection_type' => null,
+				'carrier'		  => null,
 				'static_cp_land'   => 'http://www.themedialab.co/',
 				'static_cp_300x250'=> 'http://www.adsthatwow.com/image/Audi_expandable.jpg',
 				'static_cp_320x50' => 'https://0.s3.envato.com/files/188320305/320x50.jpg',	

@@ -313,16 +313,13 @@
 		private function _matchClusterTargeting ( $cluster, array $deviceData )
 		{
 			if ( 
-				$cluster 
-				&& $cluster['os'] == $deviceData['os'] 
-				&& $cluster['country'] == $this->_geolocation->getCountryCode() 
-				&& $cluster['connection_type'] == $this->_geolocation->getConnectionType()   
+				( $cluster['os'] && $cluster['os']!=$deviceData['os'] )
+				|| ( $cluster['country'] && $cluster['country'] != $this->_geolocation->getCountryCode() ) 
+				|| ( $cluster['connection_type'] && $cluster['connection_type'] != $this->_geolocation->getConnectionType() )
 			)
-			{
-				return true;
-			}
+				return false;
 
-			return false;
+			return true;
 		}
 
 
