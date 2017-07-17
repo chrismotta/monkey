@@ -28,8 +28,11 @@
 			//-------------------------------------
 			if ( $click_id )
 			{
-				$clickCount = $this->_cache->addToSortedSet( 'convs', $this->_registry->httpRequest->getTimestamp(), $click_id  );
-				$clickCount = $this->_cache->set( 'conv:'. $click_id, $this->_registry->httpRequest->getTimestamp() );
+				$this->_cache->useDatabase( $this->_getCurrentDatabase() );
+
+				$this->_cache->addToSortedSet( 'convs', $this->_registry->httpRequest->getTimestamp(), $click_id  );
+
+				$this->_cache->set( 'conv:'. $click_id, $this->_registry->httpRequest->getTimestamp() );
 			}
 
 			//-------------------------------------
@@ -38,6 +41,12 @@
 			// Tell controller process completed successfully
 			$this->_registry->status = 200;
 			return true;
+		}
+
+
+		private function _getCurrentDatabase ( )
+		{
+			return \floor(($this->_registry->httpRequest->getTimestamp()/60/60/24))%2+3;
 		}
 
 	}

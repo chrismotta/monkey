@@ -1,5 +1,11 @@
 <?php
 
+	// TO DO:
+	// agregar el database selection de adnigma
+	// hacer que guarde toda la data persistente en la db 0
+	// reformular etl con loadedlogs
+	// testear match de device y geo
+	
 	namespace Aff\Ad\Model;
 
 	use Aff\Framework,
@@ -38,7 +44,10 @@
 		public function render ( $placement_id )
 		{
 			if ( Config\Ad::DEBUG_CACHE )
+			{
+				$this->_cache->useDatabase( $this->_getCurrentDatabase() );
 				$this->_cache->incrementMapField( 'addebug', 'requests' );
+			}
 
 			//-------------------------------------
 			// GET & VALIDATE USER DATA
@@ -49,6 +58,7 @@
 
 			// check if load balancer exists. If exists get original ip from X-Forwarded-For header
 			$ip = $this->_registry->httpRequest->getHeader('X-Forwarded-For');
+
 			if ( !$ip )
 				$ip = $this->_registry->httpRequest->getSourceIp();
 
@@ -68,6 +78,7 @@
 				return false;
 			}
 
+			$this->_cache->useDatabase(0);
 			$placement = $this->_cache->getMap( 'placement:'.$placement_id );
 
 			if ( !$placement )
@@ -109,6 +120,8 @@
 			//-------------------------------------------------------
 			// CHECK PLACEMENT STATUS & IF IMP EXISTS
 			//-------------------------------------------------------
+			$this->_cache->useDatabase( $this->_getCurrentDatabase() );
+
 			$clusterImpCount = $this->_cache->getMapField( 'clusterlog:'.$sessionHash, 'imps' );
 			$logWasTargetted = $this->_cache->getMapField( 'clusterlog:'.$sessionHash, 'targetted' );
 
@@ -149,12 +162,10 @@
 					$this->_newClusterLog ( $sessionHash, $timestamp, $ip, $placement, $device, $placement_id,  false );
 				}
 
-				// if health check is completed with this impression, set placement status to 'active'
-				if ( $placement['imps']+1 == Config\Ad::PLACEMENT_HEALTH )
-					$this->_cache->setMapField( 'placement:'.$placement_id, 'status', 'active' );
-
-				// increment placement's impression count
-				$this->_cache->incrementMapField( 'placement:'.$placement_id, 'imps' );
+				// update placement imps and status
+				$this->_cache->useDatabase( 0 );
+				$this->_updatePlacement( $placement_id, $placement );
+				$this->_cache->useDatabase( $this->_getCurrentDatabase() );
 			}
 			else
 			//-------------------------------------------------------				
@@ -164,7 +175,10 @@
 				if ( Config\Ad::DEBUG_CACHE )
 					$this->_cache->incrementMapField( 'addebug', 'retargeting' );
 				
+				$this->_cache->useDatabase( 0 );
 				$cluster = $this->_cache->getMap( 'cluster:'.$placement['cluster_id'] );
+				$this->_cache->useDatabase( $this->_getCurrentDatabase() );
+
 				$device  = $this->_getDeviceData( $userAgent );
 				$this->_geolocation->detect( $ip );
 
@@ -202,7 +216,10 @@
 						if ( Config\Ad::DEBUG_HTML )
 							echo '<!-- fraud detection passed -->';
 
+						$this->_cache->useDatabase( 0 );
 						$campaigns = $this->_cache->getSet( 'clusterlist:'.$placement['cluster_id'] );
+						$this->_cache->useDatabase( $this->_getCurrentDatabase() );
+
 						$clickIDs  = [];
 
 						foreach ( $campaigns as $campaignId )
@@ -244,6 +261,8 @@
 			}
 			else
 			{
+				$this->_cache->useDatabase( 0 );
+
 				$this->_registry->creativeUrl = $this->_cache->getMapField( 'cluster:'.$placement['cluster_id'], 'static_cp_'.$creativeSize );
 				$this->_registry->landingUrl  = $this->_cache->getMapField( 'cluster:'.$placement['cluster_id'], 'static_cp_land' );
 			}
@@ -254,6 +273,17 @@
 			// Tell controller process completed successfully
 			$this->_registry->status = 200;
 			return true;
+		}
+
+
+		private function _updatePlacement ( $placement_id, array $placement )
+		{
+			// if health check is completed with this impression, set placement status to 'active'
+			if ( $placement['imps']+1 == Config\Ad::PLACEMENT_HEALTH )
+				$this->_cache->setMapField( 'placement:'.$placement_id, 'status', 'active' );
+
+			// increment placement's impression count
+			$this->_cache->incrementMapField( 'placement:'.$placement_id, 'imps' );
 		}
 
 
@@ -344,11 +374,35 @@
 		private function _matchClusterTargeting ( $cluster, array $deviceData )
 		{
 			if ( 
-				( $cluster['os'] && $cluster['os']!=$deviceData['os'] )
-				|| ( $cluster['country'] && $cluster['country'] != $this->_geolocation->getCountryCode() ) 
-				|| ( $cluster['connection_type'] && $cluster['connection_type'] != $this->_geolocation->getConnectionType() )
+				$cluster['connection_type'] 
+				&& $cluster['connection_type'] != $this->_geolocation->getConnectionType()
+				&& $cluster['connection_type'] != '-' 
+				&& $cluster['connection_type'] != ''
 			)
+			{
 				return false;
+			}
+
+
+			if ( 
+				$cluster['country']
+				&& $cluster['country'] != $this->_geolocation->getCountryCode()
+				&& $cluster['country'] != '-'
+				&& $cluster['country'] != ''
+			)
+			{
+				return false;			
+			}
+
+			if ( 
+				$cluster['os'] 
+				&& $cluster['os'] != $deviceData['os'] 
+				&& $cluster['os'] != '-'
+				&& $cluster['os'] != ''
+			)
+			{
+				return false;
+			}
 
 			return true;
 		}
@@ -356,6 +410,8 @@
 
 		private function _getDeviceData( $ua )
 		{
+			$this->_cache->useDatabase( 0 );
+
 			$uaHash = md5($ua);
 			$data   = $this->_cache->getMap( 'ua:'.$uaHash );
 
@@ -380,6 +436,8 @@
 				$this->_cache->addToSet( 'uas', $uaHash );
 			}
 
+			$this->_cache->useDatabase( $this->_getCurrentDatabase() );
+
 			return $data;
 		}
 
@@ -389,6 +447,12 @@
 			$this->_registry->message = $message;
 			$this->_registry->code    = $code;
 			$this->_registry->status  = $status;			
+		}
+
+
+		private function _getCurrentDatabase ( )
+		{
+			return \floor(($this->_registry->httpRequest->getTimestamp()/60/60/24))%2+1;
 		}
 
 	}
