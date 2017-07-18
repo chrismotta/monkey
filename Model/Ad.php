@@ -347,7 +347,8 @@
 					break;
 				}
 			}
-			$this->_cache->addToSortedSet( 'clusterlogs', $timestamp, $sessionHash );
+
+			$this->_cache->addToSortedSet( 'sessionhashes', $timestamp, $sessionHash );
 			$this->_cache->incrementMapField( 'clusterlog:'.$sessionHash, 'imps' );
 		}
 

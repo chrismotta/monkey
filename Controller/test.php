@@ -42,7 +42,8 @@
 				'cluster_name'	  => 'Cluster 5',
 				'status'		  => 'health_check',
 				'imps'			  => 0,
-				'size'			  => '320x50'
+				'size'			  => '320x50',
+				'health_check_imps' => null
 			]);
 
 			// test normal
@@ -54,7 +55,8 @@
 				'cluster_name'	  => 'Cluster 5',
 				'status'		  => 'health_check',
 				'imps'			  => 0,
-				'size'			  => '300x250'
+				'size'			  => '300x250',
+				'health_check_imps' => 10
 			]);
 
 
@@ -66,7 +68,8 @@
 				'cluster_name'	  => 'Cluster 6',
 				'status'		  => 'active',
 				'imps'			  => 0,
-				'size'			  => '320x50'
+				'size'			  => '320x50',
+				'health_check_imps' => 20
 			]);	
 
 
@@ -78,7 +81,8 @@
 				'cluster_name'	  => 'Cluster 6',
 				'status'		  => 'testing',
 				'imps'			  => 0,
-				'size'			  => '320x50'
+				'size'			  => '320x50',
+				'health_check_imps' => 10
 			]);										
 
 			$cache->setMap( 'placement:5',  [
@@ -89,7 +93,8 @@
 				'cluster_name'	  => 'Cluster 6',
 				'status'		  => 'testing',
 				'imps'			  => 0,
-				'size'			  => '320x50'
+				'size'			  => '320x50',
+				'health_check_imps' => null
 			]);									
 
 			$cache->setMap( 'cluster:5',  [
