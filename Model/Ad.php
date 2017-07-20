@@ -43,12 +43,6 @@
 
 		public function render ( $placement_id )
 		{
-			if ( Config\Ad::DEBUG_CACHE )
-			{
-				$this->_cache->useDatabase( $this->_getCurrentDatabase() );
-				$this->_cache->incrementMapField( 'addebug', 'requests' );
-			}
-
 			//-------------------------------------
 			// GET & VALIDATE USER DATA
 			//-------------------------------------
@@ -171,19 +165,13 @@
 			//-------------------------------------------------------				
 			// LOG AND DO RETARGETING
 			//-------------------------------------------------------
-			{
-				if ( Config\Ad::DEBUG_CACHE )
-					$this->_cache->incrementMapField( 'addebug', 'retargeting' );
-				
+			{		
 				$this->_cache->useDatabase( 0 );
 				$cluster = $this->_cache->getMap( 'cluster:'.$placement['cluster_id'] );
 				$this->_cache->useDatabase( $this->_getCurrentDatabase() );
 
 				$device  = $this->_getDeviceData( $userAgent );
 				$this->_geolocation->detect( $ip );
-
-				if ( Config\Ad::DEBUG_CACHE )
-					$this->_cache->incrementMapField( 'addebug', 'geodetections' );
 
 				// log
 				$this->_newClusterLog ( $sessionHash, $timestamp, $ip, $placement, $device, $placement_id, true );
@@ -194,9 +182,6 @@
 				// match cluster targeting. If not, skip retargeting
 				if ( $this->_matchClusterTargeting( $cluster, $device ) )
 				{
-					if ( Config\Ad::DEBUG_CACHE )
-						$this->_cache->incrementMapField( 'addebug', 'target_matches' );
-
 					if ( Config\Ad::DEBUG_HTML )
 						echo '<!-- matched cluster targeting -->';
 
@@ -210,9 +195,6 @@
 					// if fraud detection passes, log and do retargeting
 					if ( $detectionSuccess && $this->_fraudDetection->getRiskLevel() < Config\Ad::FRAUD_RISK_LVL )
 					{
-						if ( Config\Ad::DEBUG_CACHE )
-							$this->_cache->incrementMapField( 'addebug', 'passed_fraud_detect' );
-
 						if ( Config\Ad::DEBUG_HTML )
 							echo '<!-- fraud detection passed -->';
 
@@ -234,9 +216,6 @@
 
 						// run campaign selection with retargeting
 						$this->_campaignSelection->run( $clickIDs );
-						
-						if ( Config\Ad::DEBUG_CACHE )
-							$this->_cache->incrementMapField( 'addebug', 'campaign_selections' );
 
 						if ( Config\Ad::DEBUG_HTML )
 							echo '<!-- cs ok -->';
@@ -279,7 +258,12 @@
 		private function _updatePlacement ( $placement_id, array $placement )
 		{
 			// if health check is completed with this impression, set placement status to 'active'
-			if ( $placement['imps']+1 == Config\Ad::PLACEMENT_HEALTH )
+			if ( $placement['health_check_imps'] && $placement['health_check_imps']>=0 )
+				$hcImps = (int)$placement['health_check_imps'];
+			else
+				$hcImps = Config\Ad::PLACEMENT_HEALTH;
+
+			if ( (int)$placement['imps']+1 == $hcImps )
 				$this->_cache->setMapField( 'placement:'.$placement_id, 'status', 'active' );
 
 			// increment placement's impression count
