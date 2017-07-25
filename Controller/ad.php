@@ -33,11 +33,24 @@
         		new Framework\TCP\Geolocation\Source\IP2Location( Config\Ad::IP2LOCATION_BIN )
         	);
 
-        	$placementId = $this->_registry->httpRequest->getPathElement(0);
+            $path0 = $this->_registry->httpRequest->getPathElement(0);
 
-        	$ad->render( $placementId );
+            switch ( $path0 )
+            {
+                case 'js':
+                    $tagType     = 'js';
+                    $placementId = $this->_registry->httpRequest->getPathElement(1);
+                break;           
+                default:
+                    $tagType     = null;
+                    $placementId = $path0;
+                break;
+            }
 
-            $this->render( 'ad' );
+
+        	$ad->render( $placementId, $tagType );
+
+            $this->render( $this->_registry->view );
         }
 
 	}

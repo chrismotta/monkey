@@ -41,7 +41,7 @@
 		}
 
 
-		public function render ( $placement_id )
+		public function render ( $placement_id, $tag_type )
 		{
 			//-------------------------------------
 			// GET & VALIDATE USER DATA
@@ -231,6 +231,17 @@
 			// RENDER
 			//-------------------------------------			
 
+			// select view based on tag type
+			switch ( $tag_type )
+			{
+				case 'js':
+					$this->_registry->view = 'js';
+				break;
+				default:
+					$this->_registry->view = 'html';
+				break;
+			}
+
 			// select static creative from cluster based on placement's size
 			$creativeSize = $placement['size'];
 			if ( isset( $cluster ) )
@@ -246,14 +257,10 @@
 				$this->_registry->landingUrl  = $this->_cache->getMapField( 'cluster:'.$placement['cluster_id'], 'static_cp_land' );
 			}
 
-			// pass sid for testing
-			//$this->_registry->sid = $sessionHash;
-			//echo '<!-- session_hash: '.$sessionHash.' -->';
 			// Tell controller process completed successfully
 			$this->_registry->status = 200;
 			return true;
 		}
-
 
 		private function _updatePlacement ( $placement_id, array $placement )
 		{
