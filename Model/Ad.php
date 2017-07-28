@@ -159,7 +159,8 @@
 					$device, 
 					$placement_id, 
 					false,
-					$isUnderFrequencyCap						
+					$isUnderFrequencyCap,
+					$matchesClusterTargeting						
 				);
 			}
 			else
@@ -232,7 +233,8 @@
 					$device, 
 					$placement_id, 
 					$retargetted,
-					$isUnderFrequencyCap						
+					$isUnderFrequencyCap,
+					$matchesClusterTargeting						
 				);				
 			}
 
@@ -297,8 +299,9 @@
 			array $placement, 
 			array $device, 
 			$placementId, 
-			$retargetted = false,
-			$underFreqCap = false			
+			$retargetted,
+			$underFreqCap,
+			$matchesClusterTargeting
 		)
 		{
 			// if cluster log already exists increment, otherwise create new
@@ -307,14 +310,14 @@
 				if ( Config\Ad::DEBUG_HTML )
 					echo '<!-- increment log -->';
 
-				$this->_incrementClusterLog( $sessionHash, $placement, $underFreqCap, $timestamp, $retargetted );
+				$this->_incrementClusterLog( $sessionHash, $placement, $underFreqCap, $timestamp, $retargetted, $matchesClusterTargeting );
 			}
 			else
 			{
 				if ( Config\Ad::DEBUG_HTML )
 					echo '<!-- new log -->';
 
-				$this->_newClusterLog ( $sessionHash, $timestamp, $ip, $placement, $device, $placementId,  $retargetted );
+				$this->_newClusterLog ( $sessionHash, $timestamp, $ip, $placement, $device, $placementId,  $retargetted, $matchesClusterTargeting );
 			}
 
 			// update placement imps and status
@@ -331,19 +334,24 @@
 			array $placement, 
 			array $device, 
 			$placementId, 
-			$retargetted = false
+			$retargetted,
+			$matchesClusterTargeting
 		)
 		{
 			// calculate cost
 			switch ( $placement['model'] )
 			{
 				case 'CPM':
-					$cost = $placement['payout']/1000;
+					if ( $matchesClusterTargeting )
+						$cost = $placement['payout']/1000;
+					else
+						$cost = 0;
 				break;
 				default:
 					$cost = 0;
 				break;
-			}
+			}				
+
 
 			// save cluster log index into a set in order to know all logs from ETL script
 			$this->_cache->addToSortedSet( 'sessionhashes', $timestamp, $sessionHash );
@@ -372,10 +380,17 @@
 		}
 
 
-		private function _incrementClusterLog ( $sessionHash, array $placement, $isUnderFreqCap, $timestamp, $retargetted )
+		private function _incrementClusterLog ( 
+			$sessionHash, 
+			array $placement, 
+			$isUnderFreqCap, 
+			$timestamp, 
+			$retargetted, 
+			$matchesClusterTargeting 
+		)
 		{
 			// if imp count is under frequency cap, add cost
-			if ( $isUnderFreqCap )
+			if ( $isUnderFreqCap && $matchesClusterTargeting )
 			{
 				switch ( $placement['model'] )
 				{
