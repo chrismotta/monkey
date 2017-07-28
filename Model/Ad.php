@@ -62,7 +62,6 @@
 				return false;
 			}
 
-
 			//-------------------------------------
 			// MATCH PLACEMENT (placement_id)
 			//-------------------------------------
@@ -72,7 +71,6 @@
 				return false;
 			}
 
-			$this->_cache->useDatabase(0);
 			$placement = $this->_cache->getMap( 'placement:'.$placement_id );
 
 			if ( !$placement )
@@ -80,6 +78,10 @@
 				$this->_createWarning( 'Placement not found', 'M000002A', 404 );
 				return false;				
 			}
+
+			$cluster = $this->_cache->getMap( 'cluster:'.$placement['cluster_id'] );
+			$device  = $this->_getDeviceData( $userAgent );
+			$this->_geolocation->detect( $ip );
 
 			//-------------------------------------
 			// CALCULATE SESSION HASH
@@ -116,9 +118,22 @@
 			//-------------------------------------------------------
 			$this->_cache->useDatabase( $this->_getCurrentDatabase() );
 
+			// check if cluster exists and how many imps
 			$clusterImpCount = $this->_cache->getMapField( 'clusterlog:'.$sessionHash, 'imps' );
+
+			// check if cluster log was targetted
 			$logWasTargetted = $this->_cache->getMapField( 'clusterlog:'.$sessionHash, 'targetted' );
 
+			// check cluster targeting
+			$matchesClusterTargeting = $this->_matchClusterTargeting( $cluster, $device );
+
+			// check frequency cap
+			if( $clusterImpCount < $placement['frequency_cap'] )
+				$isUnderFrequencyCap = true;
+			else
+				$isUnderFrequencyCap = false;
+
+			// print debug data
 			if ( Config\Ad::DEBUG_HTML )
 			{
 				echo '<!-- placement status: '.$placement['status'].' -->';
@@ -127,60 +142,38 @@
 				echo '<!-- process tracking: -->';
 			}
 
-
+			// evaluate if do or not retargeting
 			if (
 				$placement['status'] == 'health_check' 
 				|| $placement['status'] == 'testing' 
 				|| ( $clusterImpCount && $logWasTargetted )
 			)
-			//-------------------------------------------------------			
-			// LOG & SKIP RETARGETING
-			//-------------------------------------------------------
 			{
-				// if cluster log already exists increment, otherwise create new
-				if ( $clusterImpCount )
-				{
-					if ( Config\Ad::DEBUG_HTML )
-						echo '<!-- no cs => increment log -->';
-
-					$this->_incrementClusterLog( $sessionHash, $placement, $clusterImpCount, $timestamp );
-				}
-				else
-				{
-					if ( Config\Ad::DEBUG_HTML )
-						echo '<!-- no cs => new log -->';
-
-					$device = $this->_getDeviceData( $userAgent );
-					$this->_geolocation->detect( $ip );
-
-					$this->_newClusterLog ( $sessionHash, $timestamp, $ip, $placement, $device, $placement_id,  false );
-				}
-
-				// update placement imps and status
-				$this->_cache->useDatabase( 0 );
-				$this->_updatePlacement( $placement_id, $placement );
-				$this->_cache->useDatabase( $this->_getCurrentDatabase() );
+				// LOG & SKIP RETARGETING			
+				$this->_clusterLog(
+					$clusterImpCount,
+					$sessionHash, 
+					$timestamp, 
+					$ip, 
+					$placement, 
+					$device, 
+					$placement_id, 
+					false,
+					$isUnderFrequencyCap						
+				);
 			}
 			else
-			//-------------------------------------------------------				
-			// LOG AND DO RETARGETING
-			//-------------------------------------------------------
-			{		
-				$this->_cache->useDatabase( 0 );
-				$cluster = $this->_cache->getMap( 'cluster:'.$placement['cluster_id'] );
-				$this->_cache->useDatabase( $this->_getCurrentDatabase() );
+			{			
+				// LOG AND DO RETARGETING
+				
+				// skip retargeting by default
+				$retargetted = false;
 
-				$device  = $this->_getDeviceData( $userAgent );
-				$this->_geolocation->detect( $ip );
-
-				// log
-				$this->_newClusterLog ( $sessionHash, $timestamp, $ip, $placement, $device, $placement_id, true );
-			
 				if ( Config\Ad::DEBUG_HTML )
 					echo '<!-- cs init -->';
 
 				// match cluster targeting. If not, skip retargeting
-				if ( $this->_matchClusterTargeting( $cluster, $device ) )
+				if ( $matchesClusterTargeting )
 				{
 					if ( Config\Ad::DEBUG_HTML )
 						echo '<!-- matched cluster targeting -->';
@@ -193,7 +186,10 @@
 					]);
 
 					// if fraud detection passes, log and do retargeting
+					/*
 					if ( $detectionSuccess && $this->_fraudDetection->getRiskLevel() < Config\Ad::FRAUD_RISK_LVL )
+					*/
+					if ( true )
 					{
 						if ( Config\Ad::DEBUG_HTML )
 							echo '<!-- fraud detection passed -->';
@@ -212,7 +208,7 @@
 							$this->_newCampaignLog( $clickId, $sessionHash, $campaignId, $timestamp );	
 						}
 
-						//echo '<!-- <br>click IDs:'.json_encode($clickIDs) . ' -->';
+						echo '<!-- <br>click IDs:'.json_encode($clickIDs) . ' -->';
 
 						// run campaign selection with retargeting
 						$this->_campaignSelection->run( $clickIDs );
@@ -222,8 +218,22 @@
 
 						// store ad's code to be found by view and/or controller
 						$this->_registry->adCode = $this->_campaignSelection->getAdCode();
-					}					
-				}	
+
+						$retargetted = true;
+					}
+				}
+
+				$this->_clusterLog(
+					$clusterImpCount,
+					$sessionHash, 
+					$timestamp, 
+					$ip, 
+					$placement, 
+					$device, 
+					$placement_id, 
+					$retargetted,
+					$isUnderFrequencyCap						
+				);				
 			}
 
 
@@ -262,10 +272,11 @@
 			return true;
 		}
 
+
 		private function _updatePlacement ( $placement_id, array $placement )
 		{
 			// if health check is completed with this impression, set placement status to 'active'
-			if ( $placement['health_check_imps'] && $placement['health_check_imps']>=0 )
+			if ( isset($placement['health_check_imps']) && $placement['health_check_imps']>=0 )
 				$hcImps = (int)$placement['health_check_imps'];
 			else
 				$hcImps = Config\Ad::PLACEMENT_HEALTH;
@@ -278,6 +289,41 @@
 		}
 
 
+		private function _clusterLog ( 
+			$clusterImpCount,
+			$sessionHash, 
+			$timestamp, 
+			$ip, 
+			array $placement, 
+			array $device, 
+			$placementId, 
+			$retargetted = false,
+			$underFreqCap = false			
+		)
+		{
+			// if cluster log already exists increment, otherwise create new
+			if ( $clusterImpCount )
+			{
+				if ( Config\Ad::DEBUG_HTML )
+					echo '<!-- increment log -->';
+
+				$this->_incrementClusterLog( $sessionHash, $placement, $underFreqCap, $timestamp, $retargetted );
+			}
+			else
+			{
+				if ( Config\Ad::DEBUG_HTML )
+					echo '<!-- new log -->';
+
+				$this->_newClusterLog ( $sessionHash, $timestamp, $ip, $placement, $device, $placementId,  $retargetted );
+			}
+
+			// update placement imps and status
+			$this->_cache->useDatabase( 0 );
+			$this->_updatePlacement( $placementId, $placement );
+			$this->_cache->useDatabase( $this->_getCurrentDatabase() );
+		}
+
+
 		private function _newClusterLog ( 
 			$sessionHash, 
 			$timestamp, 
@@ -285,7 +331,7 @@
 			array $placement, 
 			array $device, 
 			$placementId, 
-			$targetted = false
+			$retargetted = false
 		)
 		{
 			// calculate cost
@@ -320,16 +366,16 @@
 				'browser'		  => $device['browser'], 
 				'browser_version' => $device['browser_version'], 
 				'imps'			  => 1, 				
-				'targetted'		  => $targetted, 
+				'targetted'		  => $retargetted, 
 				'cost'			  => $cost
 			]);
 		}
 
 
-		private function _incrementClusterLog ( $sessionHash, array $placement, $clusterImpCount, $timestamp )
+		private function _incrementClusterLog ( $sessionHash, array $placement, $isUnderFreqCap, $timestamp, $retargetted )
 		{
 			// if imp count is under frequency cap, add cost
-			if ( $clusterImpCount < $placement['frequency_cap'] )
+			if ( $isUnderFreqCap )
 			{
 				switch ( $placement['model'] )
 				{
@@ -338,6 +384,9 @@
 					break;
 				}
 			}
+
+			if ( $retargetted )
+				$this->_cache->setMapField( 'clusterlog:'.$sessionHash, 'targetted', $retargetted );
 
 			$this->_cache->addToSortedSet( 'sessionhashes', $timestamp, $sessionHash );
 			$this->_cache->incrementMapField( 'clusterlog:'.$sessionHash, 'imps' );
@@ -402,8 +451,6 @@
 
 		private function _getDeviceData( $ua )
 		{
-			$this->_cache->useDatabase( 0 );
-
 			$uaHash = md5($ua);
 			$data   = $this->_cache->getMap( 'ua:'.$uaHash );
 
@@ -427,8 +474,6 @@
 				// add user agent identifier to a set in order to be found by ETL
 				$this->_cache->addToSet( 'uas', $uaHash );
 			}
-
-			$this->_cache->useDatabase( $this->_getCurrentDatabase() );
 
 			return $data;
 		}
