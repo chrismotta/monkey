@@ -156,6 +156,7 @@
 					$timestamp, 
 					$ip, 
 					$placement, 
+					$cluster,
 					$device, 
 					$placement_id, 
 					false,
@@ -297,6 +298,7 @@
 			$timestamp, 
 			$ip, 
 			array $placement, 
+			array $cluster,
 			array $device, 
 			$placementId, 
 			$retargetted,
@@ -317,7 +319,7 @@
 				if ( Config\Ad::DEBUG_HTML )
 					echo '<!-- new log -->';
 
-				$this->_newClusterLog ( $sessionHash, $timestamp, $ip, $placement, $device, $placementId,  $retargetted, $matchesClusterTargeting );
+				$this->_newClusterLog ( $sessionHash, $timestamp, $ip, $placement, $cluster, $device, $placementId,  $retargetted, $matchesClusterTargeting );
 			}
 
 			// update placement imps and status
@@ -331,7 +333,8 @@
 			$sessionHash, 
 			$timestamp, 
 			$ip, 
-			array $placement, 
+			array $placement,
+			array $cluster,  
 			array $device, 
 			$placementId, 
 			$retargetted,
@@ -359,7 +362,7 @@
 			// write cluster log
 			$this->_cache->setMap( 'clusterlog:'.$sessionHash, [
 				'cluster_id'	  => $placement['cluster_id'], 
-				'cluster_name'	  => $placement['cluster_name'],  
+				'cluster_name'	  => $cluster['name'], 
 				'placement_id'	  => $placementId, 
 				'imp_time'        => $timestamp, 
 				'ip'	          => $ip, 
