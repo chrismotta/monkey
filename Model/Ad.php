@@ -46,9 +46,13 @@
 			//-------------------------------------
 			// GET & VALIDATE USER DATA
 			//-------------------------------------
-			$userAgent = $this->_registry->httpRequest->getUserAgent();
-			$sessionId = $this->_registry->httpRequest->getParam('session_id');
-			$timestamp = $this->_registry->httpRequest->getTimestamp();
+			$userAgent  = $this->_registry->httpRequest->getUserAgent();
+			$sessionId  = $this->_registry->httpRequest->getParam('session_id');
+			$exchangeId = $this->_registry->httpRequest->getParam('exchange_id');
+			$pubId 		= $this->_registry->httpRequest->getParam('pub_id');
+			$subpubId   = $this->_registry->httpRequest->getParam('subpub_id');
+			$deviceId   = $this->_registry->httpRequest->getParam('device_id');
+			$timestamp  = $this->_registry->httpRequest->getTimestamp();
 
 			// check if load balancer exists. If exists get original ip from X-Forwarded-For header
 			$ip = $this->_registry->httpRequest->getHeader('X-Forwarded-For');
@@ -114,7 +118,7 @@
 			}			
 
 			//-------------------------------------------------------
-			// CHECK PLACEMENT STATUS & IF IMP EXISTS
+			// CHECK PLACEMENT STATUS, CAP & MATCH CLUSTER TARGETING
 			//-------------------------------------------------------
 			$this->_cache->useDatabase( $this->_getCurrentDatabase() );
 
@@ -142,31 +146,21 @@
 				echo '<!-- process tracking: -->';
 			}
 
-			// evaluate if do or not retargeting
+			//-------------------------------------------------------
+			// LOG
+			//-------------------------------------------------------
 			if (
 				$placement['status'] == 'health_check' 
 				|| $placement['status'] == 'testing' 
 				|| ( $clusterImpCount && $logWasTargetted )
 			)
 			{
-				// LOG & SKIP RETARGETING			
-				$this->_clusterLog(
-					$clusterImpCount,
-					$sessionHash, 
-					$timestamp, 
-					$ip, 
-					$placement, 
-					$cluster,
-					$device, 
-					$placement_id, 
-					false,
-					$isUnderFrequencyCap,
-					$matchesClusterTargeting						
-				);
+				// SKIP RETARGETING		
+				$retargetted = false;	
 			}
 			else
 			{			
-				// LOG AND DO RETARGETING
+				// RETARGETING ON
 				
 				// skip retargeting by default
 				$retargetted = false;
@@ -202,6 +196,7 @@
 
 						$clickIDs  = [];
 
+						// generate clickids and campaign logs
 						foreach ( $campaigns as $campaignId )
 						{
 							$clickId    = md5( $campaignId.$sessionHash );
@@ -223,22 +218,27 @@
 
 						$retargetted = true;
 					}
-				}
-
-				$this->_clusterLog(
-					$clusterImpCount,
-					$sessionHash, 
-					$timestamp, 
-					$ip, 
-					$placement,
-					$cluster, 
-					$device, 
-					$placement_id, 
-					$retargetted,
-					$isUnderFrequencyCap,
-					$matchesClusterTargeting						
-				);				
+				}			
 			}
+
+			// save cluster log
+			$this->_clusterLog(
+				$clusterImpCount,
+				$sessionHash, 
+				$timestamp, 
+				$ip, 
+				$placement,
+				$cluster, 
+				$device, 
+				$placement_id, 
+				$retargetted,
+				$isUnderFrequencyCap,
+				$matchesClusterTargeting,
+				$exchangeId,
+				$pubId,
+				$subpubId,
+				$deviceId										
+			);				
 
 
 			//-------------------------------------
@@ -304,7 +304,11 @@
 			$placementId, 
 			$retargetted,
 			$underFreqCap,
-			$matchesClusterTargeting
+			$matchesClusterTargeting,
+			$exchangeId,
+			$pubId,
+			$subpubId,
+			$deviceId			
 		)
 		{
 			// if cluster log already exists increment, otherwise create new
@@ -320,7 +324,21 @@
 				if ( Config\Ad::DEBUG_HTML )
 					echo '<!-- new log -->';
 
-				$this->_newClusterLog ( $sessionHash, $timestamp, $ip, $placement, $cluster, $device, $placementId,  $retargetted, $matchesClusterTargeting );
+				$this->_newClusterLog ( 
+					$sessionHash, 
+					$timestamp, 
+					$ip, 
+					$placement, 
+					$cluster, 
+					$device, 
+					$placementId,  
+					$retargetted, 
+					$matchesClusterTargeting,
+					$exchangeId,
+					$pubId,
+					$subpubId,
+					$deviceId					 
+				);
 			}
 
 			// update placement imps and status
@@ -339,7 +357,11 @@
 			array $device, 
 			$placementId, 
 			$retargetted,
-			$matchesClusterTargeting
+			$matchesClusterTargeting,
+			$exchangeId,
+			$pubId,
+			$subpubId,
+			$deviceId
 		)
 		{
 			// calculate cost
@@ -365,6 +387,10 @@
 				'cluster_id'	  => $placement['cluster_id'], 
 				'cluster_name'	  => $cluster['name'], 
 				'placement_id'	  => $placementId, 
+				'exchange_id'	  => $exchangeId,
+				'pub_id'		  => $pubId,
+				'subpub_id'		  => $subpubId,
+				'device_id'		  => $deviceId,
 				'imp_time'        => $timestamp, 
 				'ip'	          => $ip, 
 				'country'         => $this->_geolocation->getCountryCode(), 
@@ -454,6 +480,34 @@
 				return false;			
 			}
 
+			switch ( strtolower($deviceData['device']) )
+			{
+				case 'desktop':
+					$device = 'desktop';
+				break;
+				case 'smartphone':
+				case 'feature phone':
+				case 'phablet':
+					$device = 'smartphone';
+				break;
+				case 'tablet':
+					$device = 'tablet';
+				break;
+				default:
+					$device = 'other';
+				break;
+			}
+
+			if ( 
+				$cluster['device_type'] 
+				&& $cluster['device_type'] != $device
+				&& $cluster['device_type'] != '-' 
+				&& $cluster['device_type'] != '' 
+			)
+			{
+				return false;
+			}
+
 			if ( 
 				$cluster['os'] 
 				&& $cluster['os'] != $deviceData['os'] 
@@ -463,6 +517,26 @@
 			{
 				return false;
 			}
+
+			if ( 
+				$cluster['os_version'] 
+				&& (float)$cluster['os_version'] <= (float)$deviceData['os'] 
+				&& $cluster['os'] != '-'
+				&& $cluster['os'] != ''
+			)
+			{
+				return false;
+			}			
+
+			if ( 
+				$cluster['carrier'] 
+				&& $cluster['carrier'] = $this->_geolocation->getMobileCarrier()
+				&& $cluster['carrier'] != '-'
+				&& $cluster['carrier'] != ''
+			)
+			{
+				return false;
+			}			
 
 			return true;
 		}
@@ -481,7 +555,7 @@
 				$data = array(
 					'os' 			  => $this->_deviceDetection->getOs(),
 					'os_version'	  => $this->_deviceDetection->getOsVersion(), 
-					'device'		  => $this->_deviceDetection->getType(), 
+					'device'		  => strtlower($this->_deviceDetection->getType()), 
 					'device_model'    => $this->_deviceDetection->getModel(), 
 					'device_brand'	  => $this->_deviceDetection->getBrand(), 
 					'browser'		  => $this->_deviceDetection->getBrowser(), 
