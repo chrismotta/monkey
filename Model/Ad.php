@@ -182,10 +182,10 @@
 					]);
 
 					// if fraud detection passes, log and do retargeting
-					/*
+
 					if ( $detectionSuccess && $this->_fraudDetection->getRiskLevel() < Config\Ad::FRAUD_RISK_LVL )
-					*/
-					if ( true )
+
+					//if ( true )
 					{
 						if ( Config\Ad::DEBUG_HTML )
 							echo '<!-- fraud detection passed -->';
