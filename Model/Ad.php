@@ -555,7 +555,7 @@
 				$data = array(
 					'os' 			  => $this->_deviceDetection->getOs(),
 					'os_version'	  => $this->_deviceDetection->getOsVersion(), 
-					'device'		  => strtlower($this->_deviceDetection->getType()), 
+					'device'		  => \strtolower($this->_deviceDetection->getType()), 
 					'device_model'    => $this->_deviceDetection->getModel(), 
 					'device_brand'	  => $this->_deviceDetection->getBrand(), 
 					'browser'		  => $this->_deviceDetection->getBrowser(), 
