@@ -191,7 +191,13 @@
 							echo '<!-- fraud detection passed -->';
 
 						$this->_cache->useDatabase( 0 );
-						$campaigns = $this->_cache->getSet( 'clusterlist:'.$placement['cluster_id'] );
+
+						$campaigns = $this->_cache->getSortedSetByScore( 
+							'clusterlist:'.$placement['cluster_id'],
+							1,
+							1
+						);
+
 						$this->_cache->useDatabase( $this->_getCurrentDatabase() );
 
 						$clickIDs  = [];
@@ -544,7 +550,7 @@
 
 		private function _getDeviceData( $ua )
 		{
-			$uaHash = md5($ua);
+			$uaHash = \md5($ua);
 			$data   = $this->_cache->getMap( 'ua:'.$uaHash );
 
 			// if devie data is not in cache, use device detection
