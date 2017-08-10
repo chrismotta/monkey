@@ -1,10 +1,4 @@
 <?php
-
-	// TO DO:
-	// agregar el database selection de adnigma
-	// hacer que guarde toda la data persistente en la db 0
-	// reformular etl con loadedlogs
-	// testear match de device y geo
 	
 	namespace Aff\Ad\Model;
 
@@ -60,6 +54,10 @@
 			if ( !$ip )
 				$ip = $this->_registry->httpRequest->getSourceIp();
 
+			// for the rare case in which coma separated IPs come as value
+			$ips = \explode( ',', $ip );
+			$ip  = $ips[0];
+
 			if ( !$userAgent || !$ip )
 			{
 				$this->_createWarning( 'Bad request', 'M000000A', 400 );
@@ -103,8 +101,12 @@
 			}
 			else
 			{
-				//echo '<!-- ip: '.$ip.' -->';
-				//echo '<!-- user agent: '.$userAgent.' -->';
+				if ( Config\Ad::DEBUG_HTML )
+				{
+					echo '<!-- ip: '.$ip.' -->';
+					echo '<!-- user agent: '.$userAgent.' -->';			
+				}				
+
 				$sessionHash = \md5( 
 					\date( 'Y-m-d', $timestamp ) .
 					$placement['cluster_id'] .
@@ -112,9 +114,6 @@
 					$ip . 
 					$userAgent								
 				);
-				/*
-				$sessionHash = \md5(rand());
-				*/
 			}			
 
 			//-------------------------------------------------------
@@ -165,9 +164,6 @@
 				// skip retargeting by default
 				$retargetted = false;
 
-				if ( Config\Ad::DEBUG_HTML )
-					echo '<!-- cs init -->';
-
 				// match cluster targeting. If not, skip retargeting
 				if ( $matchesClusterTargeting )
 				{
@@ -192,6 +188,7 @@
 
 						$this->_cache->useDatabase( 0 );
 
+						// retrieve active campaigns only
 						$campaigns = $this->_cache->getSortedSetByScore( 
 							'clusterlist:'.$placement['cluster_id'],
 							1,
@@ -200,29 +197,36 @@
 
 						$this->_cache->useDatabase( $this->_getCurrentDatabase() );
 
-						$clickIDs  = [];
-
-						// generate clickids and campaign logs
-						foreach ( $campaigns as $campaignId )
+						if ( $campaigns && is_array($campaigns) && !empty($campaigns) )
 						{
-							$clickId    = md5( $campaignId.$sessionHash );
-							$clickIDs[] = $clickId;
+							$clickIDs  = [];
 
-							$this->_newCampaignLog( $clickId, $sessionHash, $campaignId, $timestamp );	
+							// generate clickids and campaign logs
+							foreach ( $campaigns as $campaignId )
+							{
+								$clickId    = md5( $campaignId.$sessionHash );
+								$clickIDs[] = $clickId;
+
+								$this->_newCampaignLog( $clickId, $sessionHash, $campaignId, $timestamp );	
+							}
+
+							// run campaign selection with retargeting
+							$this->_campaignSelection->run( $clickIDs );
+
+							if ( Config\Ad::DEBUG_HTML )
+								echo '<!-- cs ok -->';
+
+							// store ad's code to be found by view and/or controller
+							$this->_registry->adCode = $this->_campaignSelection->getAdCode();
+
+							$retargetted = true;						
 						}
-
-						echo '<!-- <br>click IDs:'.json_encode($clickIDs) . ' -->';
-
-						// run campaign selection with retargeting
-						$this->_campaignSelection->run( $clickIDs );
-
-						if ( Config\Ad::DEBUG_HTML )
-							echo '<!-- cs ok -->';
-
-						// store ad's code to be found by view and/or controller
-						$this->_registry->adCode = $this->_campaignSelection->getAdCode();
-
-						$retargetted = true;
+						else
+						{
+							if ( Config\Ad::DEBUG_HTML )
+								echo '<!-- no active campaigns in cluster -->';	
+						}						
+						
 					}
 				}			
 			}
