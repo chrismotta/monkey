@@ -47,6 +47,8 @@
 				$httpClientRequest->setURL( $url );
 
 				$r = $httpClient->send( $httpClientRequest );
+
+				var_export($r);
 			}
 
 
