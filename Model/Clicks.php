@@ -36,7 +36,7 @@
 				$this->_cache->addToSortedSet( 'clickids', $this->_registry->httpRequest->getTimestamp(), $click_id );
 
 				$this->_cache->useDatabase( 0 );
-				$callbackURL = $this->_cache->getMapField( 'campaign:'.$campaignLog['campaign_id'], 'callback' );
+				$callbackURL = $this->_cache->getMapField( 'campaign:'.$campaignLog['campaign_id'], 'callback' ) . '&click_id='.$click_id;
 
 				//-------------------------------------
 				// NOTIFY AFFILIATE  
@@ -44,9 +44,9 @@
 	        	$httpClient 	   = new Framework\TCP\HTTP\Client\cURL();
 				$httpClientRequest = new Framework\TCP\HTTP\Client\Request();
 
-				$httpClientRequest->setURL( \str_replace( '{CLICK_ID}', $click_id, $callbackURL ) );
+				$httpClientRequest->setURL( $url );
 
-				$httpClient->send( $httpClientRequest );
+				$r = $httpClient->send( $httpClientRequest );
 			}
 
 
