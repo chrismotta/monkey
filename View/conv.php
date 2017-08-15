@@ -1,6 +1,10 @@
 <?php
 	
-header('Content-Type: image/png');
-echo base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABAQMAAAAl21bKAAAAA1BMVEUAAACnej3aAAAAAXRSTlMAQObYZgAAAApJREFUCNdjYAAAAAIAAeIhvDMAAAAASUVORK5CYII=');
+	header( 'Content-Type: text/json;charset=UTF-8' );
+	echo json_encode( array ( 
+		$registry->messageType	=>  array(
+			'message'	=> $registry->message,
+		)
+	), \JSON_PRETTY_PRINT );
 
 ?>

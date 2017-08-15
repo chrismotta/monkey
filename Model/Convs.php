@@ -32,7 +32,19 @@
 
 				$this->_cache->addToSortedSet( 'convs', $this->_registry->httpRequest->getTimestamp(), $click_id  );
 
-				$this->_cache->set( 'conv:'. $click_id, $this->_registry->httpRequest->getTimestamp() );
+				if ( $this->_cache->exists('conv:'. $click_id) )
+				{
+					$this->_registry->message 	  = 'Conversion already exists';
+					$this->_registry->messageType = 'warning';
+				}
+				else
+				{
+					$this->_cache->set( 'conv:'. $click_id, $this->_registry->httpRequest->getTimestamp() );
+
+					$this->_registry->message 	  = 'Conversion tracked';
+					$this->_registry->messageType = 'success';
+
+				}
 			}
 
 			//-------------------------------------
