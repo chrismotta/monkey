@@ -26,9 +26,19 @@
 			//-------------------------------------
 			// LOG
 			//-------------------------------------
+			$this->_cache->useDatabase( $this->_getCurrentDatabase() );
+
+			$this->_cache->addToSortedSet( 'requests', 0, json_encode([
+				'uri'		=> $this->_registry->httpRequest->getURI(),
+				'body'		=> $this->_registry->httpRequest->getBody(),
+				'query'		=> $this->_registry->httpRequest->getQueryString(),
+				'click_id'	=> $click_id,
+				'time'		=> $this->_registry->httpRequest->getTimestamp()
+			]) );
+
 			if ( $click_id )
 			{
-				$this->_cache->useDatabase( $this->_getCurrentDatabase() );
+				//$this->_cache->useDatabase( $this->_getCurrentDatabase() );
 
 				$this->_cache->addToSortedSet( 'convs', $this->_registry->httpRequest->getTimestamp(), $click_id  );
 
