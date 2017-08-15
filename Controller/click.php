@@ -19,15 +19,25 @@
 
 		public function route ( )
         {
-        	$clicks= new Model\Clicks(
+        	$clicks = new Model\Clicks(
         		$this->_registry,
         		new Framework\Database\Redis\Predis( 'tcp://'.Config\Ad::REDIS_CONFIG.':6379' )
         	);
 
-        	$clickId = $this->_registry->httpRequest->getPathElement(1);
-        	$clicks->log( $clickId );
+            $path1 = $this->_registry->httpRequest->getPathElement(1);
 
-            $this->render( 'click' );
+            switch ( $path1 )
+            {
+                case 'test':
+                	$campaignId = $this->_registry->httpRequest->getPathElement(2);
+                	$clicks->test( $campaignId );
+                break;           
+                default:
+		        	$clickId = $this->_registry->httpRequest->getPathElement(1);
+		        	$clicks->log( $clickId );
+		        	$this->render( 'click' );
+                break;
+            }
         }
 
 	}
