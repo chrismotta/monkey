@@ -32,10 +32,15 @@
                 	$campaignId = $this->_registry->httpRequest->getPathElement(2);
                 	$clicks->test( $campaignId );
                 break;           
+                case 'pixel':
+		        	$clickId = $this->_registry->httpRequest->getPathElement(1);
+		        	$clicks->pixel( $clickId );
+		        	$this->render( 'pixel' );
+                break;                   
                 default:
 		        	$clickId = $this->_registry->httpRequest->getPathElement(1);
 		        	$clicks->log( $clickId );
-		        	$this->render( 'click' );
+		        	$this->render( 'click' );		        	
                 break;
             }
         }

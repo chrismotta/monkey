@@ -21,7 +21,7 @@
 		}
 
 
-		public function log ( $click_id )
+		public function pixel ( $click_id )
 		{
 			//-------------------------------------
 			// LOG
@@ -59,6 +59,52 @@
 
 			return true;
 		}
+
+		public function log ( $click_id )
+		{
+			//-------------------------------------
+			// LOG
+			//-------------------------------------
+			$this->_cache->useDatabase( $this->_getCurrentDatabase() );
+
+			$campaignLog = $this->_cache->getMap( 'campaignlog:'. $click_id );
+
+			if ( $campaignLog )
+			{
+				if ( $campaignLog['click_time'] && $campaignLog['click_time']!='' )
+				{
+					$this->_registry->status  = 400;
+					$this->_registry->message = 'Click already done';
+					$this->_registry->code    = 'exists';
+				}
+				else
+				{
+					$this->_cache->setMapField( 'campaignlog:'. $click_id, 'click_time', $this->_registry->httpRequest->getTimestamp() );
+
+					$this->_cache->addToSortedSet( 'clickids', $this->_registry->httpRequest->getTimestamp(), $click_id );
+
+					$this->_cache->useDatabase( 0 );
+
+					$callbackURL = $this->_cache->getMapField( 'campaign:'.$campaignLog['campaign_id'], 'callback' ) . '&aff_sub='.$click_id;
+
+					header('Location: '. $callbackURL );
+					exit();
+				}
+			}
+			else
+			{
+				$this->_registry->status  = 404;
+				$this->_registry->message = 'Click ID not found';
+				$this->_registry->code    = 'not_found';
+			}
+
+			//-------------------------------------
+			// RENDER
+			//-------------------------------------
+			// Tell controller process completed successfully
+			return true;
+		}
+
 
 		public function test ( $campaign_id )
 		{
