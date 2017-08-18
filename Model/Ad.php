@@ -575,7 +575,7 @@
 				$this->_cache->setMap( 'ua:'.$uaHash, $data );
 
 				// add user agent identifier to a set in order to be found by ETL
-				$this->_cache->addToSet( 'uas', $uaHash );
+				$this->_cache->addToSortedSet( 'useragents', 0, $uaHash );
 			}
 
 			return $data;
