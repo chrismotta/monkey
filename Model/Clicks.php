@@ -113,16 +113,11 @@
 			//-------------------------------------
 			if ( $this->_cache->exists('campaign:'.$campaign_id) )
 			{
-				$clickId = \md5( $campaign_id.'test' );
+				$clickId = 'test_'.\md5( $campaign_id.$this->_registry->httpRequest->getTimestamp() );
 
 				$callbackURL = $this->_cache->getMapField( 'campaign:'.$campaign_id, 'callback' ) . '&aff_sub='.$clickId;
 
-				$this->_cache->useDatabase( $this->_getCurrentDatabase() );
-
-				$this->_cache->addToSortedSet( 'clickids', 
-					$this->_registry->httpRequest->getTimestamp(), 
-					$clickId 
-				);
+				$this->_cache->useDatabase( 8 );
 
 				// write campaign log
 				$this->_cache->setMap( 'campaignlog:'.$clickId, [
@@ -130,6 +125,11 @@
 					'campaign_id'	  => $campaign_id, 
 					'click_time'      => $this->_registry->httpRequest->getTimestamp() 
 				]);		
+
+				$this->_cache->addToSortedSet( 'testclickids', 
+					$this->_registry->httpRequest->getTimestamp(), 
+					$clickId 
+				);
 
 				header('Location: '. $callbackURL );
 			}
