@@ -85,7 +85,18 @@
 
 					$this->_cache->useDatabase( 0 );
 
-					$callbackURL = $this->_cache->getMapField( 'campaign:'.$campaignLog['campaign_id'], 'callback' ) . '&aff_sub='.$click_id;
+
+
+					$campaign = $this->_cache->getMap( 'campaign:'.$campaignLog['campaign_id'], ['callback', 'click_macro'] ); 
+
+					$queryString = \parse_url( $campaign[0], \PHP_URL_QUERY );
+
+					if ( $queryString && $queryString != '' )
+						$paramsPrefix = '&';
+					else
+						$paramsPrefix = '?';
+
+					$callbackURL = $campaign[0] . $paramsPrefix . $campaign[1] . '=' . $click_id;
 
 					header('Location: '. $callbackURL );
 					exit();
