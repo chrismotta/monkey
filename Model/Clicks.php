@@ -85,8 +85,6 @@
 
 					$this->_cache->useDatabase( 0 );
 
-
-
 					$campaign = $this->_cache->getMap( 'campaign:'.$campaignLog['campaign_id'], ['callback', 'click_macro'] ); 
 
 					$queryString = \parse_url( $campaign[0], \PHP_URL_QUERY );
@@ -126,7 +124,17 @@
 			{
 				$clickId = 'test_'.\md5( $campaign_id.$this->_registry->httpRequest->getTimestamp() );
 
-				$callbackURL = $this->_cache->getMapField( 'campaign:'.$campaign_id, 'callback' ) . '&aff_sub='.$clickId;
+
+				$campaign = $this->_cache->getMap( 'campaign:'.$campaign_id, ['callback', 'click_macro'] ); 
+
+				$queryString = \parse_url( $campaign[0], \PHP_URL_QUERY );
+
+				if ( $queryString && $queryString != '' )
+					$paramsPrefix = '&';
+				else
+					$paramsPrefix = '?';
+
+				$callbackURL = $campaign[0] . $paramsPrefix . $campaign[1] . '=' . $clickId;
 
 				$this->_cache->useDatabase( 8 );
 
