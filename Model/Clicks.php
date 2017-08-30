@@ -161,7 +161,7 @@
 					$this->_registry->httpRequest->getTimestamp(), 
 					$clickId 
 				);
-				echo $callbackURL;die();
+
 				header('Location: '. $callbackURL );
 			}
 			else
