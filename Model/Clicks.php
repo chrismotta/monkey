@@ -94,7 +94,13 @@
 					else
 						$paramsPrefix = '?';
 
-					$callbackURL = $campaign[0] . $paramsPrefix . $campaign[1] . '=' . $click_id;
+					$pattern  = '/('.$campaign[1].'=)[^& ]+/';
+					$param 	  = $campaign[1] . '=' . $click_id;
+
+					if ( preg_match_all($pattern, $campaign[0]) )
+						$callbackURL = preg_replace( $pattern, $param, $campaign[0] );
+					else					
+						$callbackURL = $campaign[0] . $paramsPrefix . $param;
 
 					header('Location: '. $callbackURL );
 					exit();
@@ -134,7 +140,13 @@
 				else
 					$paramsPrefix = '?';
 
-				$callbackURL = $campaign[0] . $paramsPrefix . $campaign[1] . '=' . $clickId;
+				$pattern  = '/('.$campaign[1].'=)[^& ]+/';
+				$param 	  = $campaign[1] . '=' . $clickId;
+
+				if ( preg_match_all($pattern, $campaign[0]) )
+					$callbackURL = preg_replace( $pattern, $param, $campaign[0] );
+				else					
+					$callbackURL = $campaign[0] . $paramsPrefix . $param;
 
 				$this->_cache->useDatabase( 8 );
 
@@ -149,7 +161,7 @@
 					$this->_registry->httpRequest->getTimestamp(), 
 					$clickId 
 				);
-
+				echo $callbackURL;die();
 				header('Location: '. $callbackURL );
 			}
 			else
