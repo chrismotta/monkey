@@ -87,7 +87,8 @@
 
 					$campaign = $this->_cache->getMap( 'campaign:'.$campaignLog['campaign_id'], ['callback', 'click_macro', 'placeholders', 'ext_id'] ); 
 
-					$callbackURL = $this->_replaceMacros ( $campaign[0], $campaign[1], $click_id, $campaign[2], $campaign[3] );
+
+					$callbackURL = $this->_replaceMacros ( $campaign[0], $campaign[1], $click_id, $campaign[2], $campaign[3], $campaignLog['session_hash'] );
 
 					header('Location: '. $callbackURL );
 					exit();
@@ -154,7 +155,7 @@
 			return true;
 		}
 
-		private function _replaceMacros( $callback, $click_macro, $click_id, $placeholders, $ext_id )
+		private function _replaceMacros( $callback, $click_macro, $click_id, $placeholders, $ext_id, $session_hash = null )
 		{
 			$queryString = \parse_url( $callback, \PHP_URL_QUERY );
 
@@ -180,17 +181,30 @@
 					switch ( $p[1] )
 					{
 						case '{ext_id}':
+							$this->_cache->useDatabase( 0 );
 							$value = $ext_id;
+						break;
+						case '{subpub_id}':
+							if ( $session_hash )
+							{
+								$this->_cache->useDatabase( $this->_getCurrentDatabase() );
+								$value = $this->_cache->getMapField( 'clusterlog:'.$session_hash, 'subpub_id' );
+							}
+							else
+								$value = null;
 						break;
 						default:
 							$value = null;
 						break;
 					}
 
-					$pattern  = '/('.$p[0].'=)([^& ]+)?/';
-					$param 	  = $p[0] . '=' . $value;
+					if ( $value )
+					{
+						$pattern  = '/('.$p[0].'=)([^& ]+)?/';
+						$param 	  = $p[0] . '=' . $value;
 
-					$callback = preg_replace( $pattern, $param, $callback );
+						$callback = preg_replace( $pattern, $param, $callback );						
+					}
 				}
 			}	
 
