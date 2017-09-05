@@ -25,6 +25,10 @@
         	);
 
         	$clickId = $this->_registry->httpRequest->getPathElement(1);
+
+        	if ( !$clickId )
+        		$clickId = $this->_registry->httpRequest->getParam('click_id');
+
         	$convs->log( $clickId );
 
             $this->render( 'conv' );
