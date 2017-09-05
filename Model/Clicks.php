@@ -85,22 +85,9 @@
 
 					$this->_cache->useDatabase( 0 );
 
-					$campaign = $this->_cache->getMap( 'campaign:'.$campaignLog['campaign_id'], ['callback', 'click_macro'] ); 
+					$campaign = $this->_cache->getMap( 'campaign:'.$campaignLog['campaign_id'], ['callback', 'click_macro', 'placeholders', 'ext_id'] ); 
 
-					$queryString = \parse_url( $campaign[0], \PHP_URL_QUERY );
-
-					if ( $queryString && $queryString != '' )
-						$paramsPrefix = '&';
-					else
-						$paramsPrefix = '?';
-
-					$pattern  = '/('.$campaign[1].'=)([^& ]+)?/';
-					$param 	  = $campaign[1] . '=' . $click_id;
-
-					if ( $campaign[1] && preg_match_all($pattern, $campaign[0]) )
-						$callbackURL = preg_replace( $pattern, $param, $campaign[0] );
-					else					
-						$callbackURL = $campaign[0] . $paramsPrefix . $param;
+					$callbackURL = $this->_replaceMacros ( $campaign[0], $campaign[1], $click_id, $campaign[2], $campaign[3] );
 
 					header('Location: '. $callbackURL );
 					exit();
@@ -131,22 +118,10 @@
 				$clickId = 'test_'.\md5( $campaign_id.$this->_registry->httpRequest->getTimestamp() );
 
 
-				$campaign = $this->_cache->getMap( 'campaign:'.$campaign_id, ['callback', 'click_macro'] ); 
+				$campaign = $this->_cache->getMap( 'campaign:'.$campaign_id, ['callback', 'click_macro', 'placeholders', 'ext_id'] ); 
 
-				$queryString = \parse_url( $campaign[0], \PHP_URL_QUERY );
-
-				if ( $queryString && $queryString != '' )
-					$paramsPrefix = '&';
-				else
-					$paramsPrefix = '?';
-
-				$pattern  = '/('.$campaign[1].'=)([^& ]+)?/';
-				$param 	  = $campaign[1] . '=' . $clickId;
-
-				if ( $campaign[1] && preg_match_all($pattern, $campaign[0]) )
-					$callbackURL = preg_replace( $pattern, $param, $campaign[0] );
-				else					
-					$callbackURL = $campaign[0] . $paramsPrefix . $param;
+				$callbackURL = $this->_replaceMacros ( $campaign[0], $campaign[1], $clickId, $campaign[2], $campaign[3] );
+				
 
 				$this->_cache->useDatabase( 8 );
 
@@ -177,6 +152,49 @@
 			$this->_registry->status = 200;
 
 			return true;
+		}
+
+		private function _replaceMacros( $callback, $click_macro, $click_id, $placeholders, $ext_id )
+		{
+			$queryString = \parse_url( $callback, \PHP_URL_QUERY );
+
+			if ( $queryString && $queryString != '' )
+				$paramsPrefix = '&';
+			else
+				$paramsPrefix = '?';
+
+			$pattern  = '/('.$click_macro.'=)([^& ]+)?/';
+			$param 	  = $click_macro . '=' . $click_id;
+
+			if ( $click_macro && preg_match_all($pattern, $callback) )
+				$callback = preg_replace( $pattern, $param, $callback );
+			else					
+				$callback = $callback . $paramsPrefix . $param;
+
+			foreach ( explode('&', $placeholders) AS $placeholder )
+			{
+				$p = explode ('=', $placeholder );
+
+				if ( isset( $p[0]) && isset($p[1]) )
+				{
+					switch ( $p[1] )
+					{
+						case '{ext_id}':
+							$value = $ext_id;
+						break;
+						default:
+							$value = null;
+						break;
+					}
+
+					$pattern  = '/('.$p[0].'=)([^& ]+)?/';
+					$param 	  = $p[0] . '=' . $value;
+
+					$callback = preg_replace( $pattern, $param, $callback );
+				}
+			}	
+
+			return $callback;		
 		}
 
 		private function _getCurrentDatabase ( )
