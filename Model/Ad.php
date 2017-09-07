@@ -164,8 +164,20 @@
 				// skip retargeting by default
 				$retargetted = false;
 
+				$this->_cache->useDatabase( 0 );
+
+				// verify if ip was banned
+				$ipRank = $this->_cache->getSortedSetElementRank('ipblacklist', $ip);
+
+				if ( is_int($ipRank) && $ipRank>=0 )
+					$banned = true;
+				else
+					$banned = false;
+
+				$this->_cache->useDatabase( $this->_getCurrentDatabase() );
+
 				// match cluster targeting. If not, skip retargeting
-				if ( $matchesClusterTargeting )
+				if ( !$banned && $matchesClusterTargeting )
 				{
 					if ( Config\Ad::DEBUG_HTML )
 						echo '<!-- matched cluster targeting -->';
