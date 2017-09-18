@@ -14,6 +14,10 @@
 		private $_cache;
 		private $_campaignSelection;
 		private $_fraudDetection;
+		private $_campaignsPool;
+		private $_campaigns;
+		private $_excludedAffiliates;
+		private $_excludedPackageIds;
 
 
 		public function __construct ( 
@@ -151,7 +155,7 @@
 			if (
 				$placement['status'] == 'health_check' 
 				|| $placement['status'] == 'testing' 
-				|| ( $clusterImpCount && $logWasTargetted )
+				//|| ( $clusterImpCount && $logWasTargetted )
 			)
 			{
 				// SKIP RETARGETING		
@@ -199,21 +203,16 @@
 
 						$this->_cache->useDatabase( 0 );
 
-						// retrieve active campaigns only
-						$campaigns = $this->_cache->getSortedSetByScore( 
-							'clusterlist:'.$placement['cluster_id'],
-							1,
-							1
-						);
+						$this->_retrieveCampaigns( $placement['cluster_id'] );
 
 						$this->_cache->useDatabase( $this->_getCurrentDatabase() );
 
-						if ( $campaigns && is_array($campaigns) && !empty($campaigns) )
+						if ( $this->_campaigns && is_array($this->_campaigns) && !empty($this->_campaigns) )
 						{
 							$clickIDs  = [];
 
 							// generate clickids and campaign logs
-							foreach ( $campaigns as $campaignId )
+							foreach ( $this->_campaigns as $campaignId )
 							{
 								$clickId    = md5( $campaignId.$sessionHash );
 								$clickIDs[] = $clickId;
@@ -606,6 +605,113 @@
 			return \floor(($this->_registry->httpRequest->getTimestamp()/60/60/24))%2+1;
 		}
 
+
+		private function _retrieveCampaigns ( $cluster_id )
+		{
+			$this->_campaigns     	   = [];
+			$this->_campaignsPool 	   = [];
+			$this->_excludedAffiliates = [];
+			$this->_excludedPackageIds = [];
+
+			// retrieve campaigns from cluster
+			$clusterCampaigns = $this->_cache->getSortedSet( 
+				'clusterlist:'.$cluster_id,
+				0,
+				-1,
+				[
+					'WITHSCORES' => true
+				]
+			);
+
+			$campaignsTotal = \count($clusterCampaigns);
+
+	
+			// retrieve 5 campaigns
+			$this->_retrieveCampaign( $clusterCampaigns, $campaignsTotal );
+			$this->_retrieveCampaign( $clusterCampaigns, $campaignsTotal );
+			$this->_retrieveCampaign( $clusterCampaigns, $campaignsTotal );
+			$this->_retrieveCampaign( $clusterCampaigns, $campaignsTotal );
+			$this->_retrieveCampaign( $clusterCampaigns, $campaignsTotal );
+
+			if ( $this->_registry->httpRequest->getParam('test_campaign_pool')==1 )
+			{
+				echo 'SELECTED CAMPAIGNS<br><br>';
+				var_dump($this->_campaigns);
+				die();
+			}
+		}
+
+
+		private function _retrieveCampaign ( array $clusterCampaigns, $campaignsTotal )
+		{
+			if ( $this->_registry->httpRequest->getParam('test_campaign_pool')==1 )
+			{
+				echo 'CURRENT CAMPAIGN POOL<br><br>';		
+				var_dump($this->_campaignsPool);
+				echo '<br><br>CURRENT EXCLUDED AFFILIATES<br><br>';		
+				var_dump($this->_excludedAffiliates);			
+				echo '<br><br>CURRENT EXCLUDED PACKAGES<br><br>';		
+				var_dump($this->_excludedPackageIds);						
+				echo '<hr>';				
+			}
+
+			// select campaign from pool
+			$poolCount    = \count($this->_campaignsPool);
+
+			$randPosition = \rand ( 0, $poolCount-1 );
+
+			if ( $poolCount>0 && $randPosition >= 0 )
+				$selectedCid = $this->_campaignsPool[$randPosition];
+			else
+				$selectedCid = false;
+
+			if ( $selectedCid )
+			{
+				// save selected campaign
+				$this->_campaigns[] = $selectedCid;
+
+				// save affiliate and package_id data to be excluded when recreating pool
+				foreach ( $clusterCampaigns AS $campaign => $frequency )
+				{
+					$data = \explode( ':', $campaign );
+
+					if ( $data[0] == $selectedCid )
+					{
+						$this->_excludedAffiliates[] = $data[1];
+						$this->_excludedPackageIds[] = $data[2];
+						break;
+					}
+				}
+			}			
+
+			// recreate pool removing retrieved campaign and campaigns with same affiliate or package_id
+			unset( $this->_campaignsPool );
+			$this->_campaignsPool = [];		
+
+			foreach ( $clusterCampaigns AS $campaign => $frequency )
+			{
+				$data      = \explode( ':', $campaign );
+				$id        = $data[0];
+
+				if ( in_array( $id, $this->_campaigns ) )
+					continue;
+
+				for ( $c=0; $c<$frequency; $c++ )
+				{
+					if ( 
+						!in_array( $data[1], $this->_excludedAffiliates ) 
+						&& !in_array( $data[2], $this->_excludedPackageIds )
+					)
+					{
+						$this->_campaignsPool[] = $id;
+					}
+				}
+
+				unset( $data );
+			}
+
+			return true;
+		}
 	}
 
 ?>
