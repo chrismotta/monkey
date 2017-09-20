@@ -162,7 +162,7 @@
 			if (
 				$placement['status'] == 'health_check' 
 				|| $placement['status'] == 'testing' 
-				//|| ( $clusterImpCount && $logWasTargetted )
+				|| ( $clusterImpCount && $logWasTargetted )
 			)
 			{
 				// SKIP RETARGETING		
