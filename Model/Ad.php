@@ -50,7 +50,14 @@
 			$pubId 		= $this->_registry->httpRequest->getParam('pub_id');
 			$subpubId   = $this->_registry->httpRequest->getParam('subpub_id');
 			$deviceId   = $this->_registry->httpRequest->getParam('device_id');
+			$idfa   	= $this->_registry->httpRequest->getParam('idfa');
+			$gaid   	= $this->_registry->httpRequest->getParam('gaid');
 			$timestamp  = $this->_registry->httpRequest->getTimestamp();
+
+			if ( $idfa )
+				$sessionId = $idfa;
+			else if ( $gaid )
+				$sessionId = $gaid;
 
 			// check if load balancer exists. If exists get original ip from X-Forwarded-For header
 			$ip = $this->_registry->httpRequest->getHeader('X-Forwarded-For');
@@ -257,7 +264,9 @@
 				$exchangeId,
 				$pubId,
 				$subpubId,
-				$deviceId										
+				$deviceId,
+				$idfa,
+				$gaid									
 			);				
 
 
@@ -328,7 +337,9 @@
 			$exchangeId,
 			$pubId,
 			$subpubId,
-			$deviceId			
+			$deviceId,
+			$idfa,
+			$gaid		
 		)
 		{
 			// if cluster log already exists increment, otherwise create new
@@ -357,7 +368,9 @@
 					$exchangeId,
 					$pubId,
 					$subpubId,
-					$deviceId					 
+					$deviceId,
+					$idfa,
+					$gaid					 
 				);
 			}
 
@@ -381,7 +394,9 @@
 			$exchangeId,
 			$pubId,
 			$subpubId,
-			$deviceId
+			$deviceId,
+			$idfa,
+			$gaid
 		)
 		{
 			// calculate cost
@@ -411,6 +426,8 @@
 				'pub_id'		  => $pubId,
 				'subpub_id'		  => $subpubId,
 				'device_id'		  => $deviceId,
+				'idfa'			  => $idfa,
+				'gaid'			  => $gaid,
 				'imp_time'        => $timestamp, 
 				'ip'	          => $ip, 
 				'country'         => $this->_geolocation->getCountryCode(), 

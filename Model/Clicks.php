@@ -164,8 +164,9 @@
 			else
 				$paramsPrefix = '?';
 
-			$pattern  = '/('.$click_macro.'=)([^& ]+)?/';
-			$param 	  = $click_macro . '=' . $click_id;
+			$pattern  	= '/('.$click_macro.'=)([^& ]+)?/';
+			$param 	  	= $click_macro . '=' . $click_id;
+			$clusterLog = false;
 
 			if ( $click_macro && preg_match_all($pattern, $callback) )
 				$callback = preg_replace( $pattern, $param, $callback );
@@ -182,17 +183,60 @@
 					{
 						case '{ext_id}':
 							$this->_cache->useDatabase( 0 );
-							$value = $ext_id;
+							$values = preg_split('(:)', $ext_id);
+							$value  = $values[0];
 						break;
 						case '{subpub_id}':
 							if ( $session_hash )
 							{
 								$this->_cache->useDatabase( $this->_getCurrentDatabase() );
-								$value = $this->_cache->getMapField( 'clusterlog:'.$session_hash, 'subpub_id' );
+
+								if ( !$clusterLog )
+									$clusterLog = $this->_cache->getMap( 'clusterlog:'.$session_hash, [
+										'subpub_id',
+										'idfa',
+										'gaid'
+									]);
+
+								$value = $clusterLog[0];
 							}
 							else
 								$value = null;
-						break;
+						break;							
+						case '{idfa}':	
+							if ( $session_hash )
+							{
+								$this->_cache->useDatabase( $this->_getCurrentDatabase() );
+
+								if ( !$clusterLog )
+									$clusterLog = $this->_cache->getMap( 'clusterlog:'.$session_hash, [
+										'subpub_id',
+										'idfa',
+										'gaid'
+									]);
+
+								$value = $clusterLog[2];
+							}
+							else
+								$value = null;
+						break;											
+						case '{gaid}':
+							if ( $session_hash )
+							{
+								$this->_cache->useDatabase( $this->_getCurrentDatabase() );
+
+								if ( !$clusterLog )
+									$clusterLog = $this->_cache->getMap( 'clusterlog:'.$session_hash, [
+										'subpub_id',
+										'idfa',
+										'gaid'
+									]);
+
+								$value = $clusterLog[1];
+							}
+							else
+								$value = null;
+						break;										
 						default:
 							$value = null;
 						break;
@@ -202,8 +246,11 @@
 					{
 						$pattern  = '/('.$p[0].'=)([^& ]+)?/';
 						$param 	  = $p[0] . '=' . $value;
-
-						$callback = preg_replace( $pattern, $param, $callback );						
+						
+						if ( preg_match_all($pattern, $callback) )
+							$callback = preg_replace( $pattern, $param, $callback );
+						else
+							$callback .= '&'.$param;
 					}
 				}
 			}	
