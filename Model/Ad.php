@@ -18,6 +18,8 @@
 		private $_campaigns;
 		private $_excludedAffiliates;
 		private $_excludedPackageIds;
+		private $_debugPlacement;
+		private $_debugCluster;
 
 
 		public function __construct ( 
@@ -91,6 +93,11 @@
 				$this->_createWarning( 'Placement not found', 'M000002A', 404 );
 				return false;				
 			}
+
+			$this->_debugPlacement = $placement_id;
+			$this->_debugCluster   = $placement['cluster_id'];
+
+			$this->_cache->remove( 'targetdebug');
 
 			$cluster = $this->_cache->getMap( 'cluster:'.$placement['cluster_id'] );
 			$device  = $this->_getDeviceData( $userAgent );
@@ -203,7 +210,6 @@
 					// if fraud detection passes, log and do retargeting
 
 					if ( $detectionSuccess && $this->_fraudDetection->getRiskLevel() <= Config\Ad::FRAUD_RISK_LVL )
-					//if ( true )
 					{
 						if ( Config\Ad::DEBUG_HTML )
 							echo '<!-- fraud detection passed -->';
@@ -249,25 +255,29 @@
 			}
 
 			// save cluster log
-			$this->_clusterLog(
-				$clusterImpCount,
-				$sessionHash, 
-				$timestamp, 
-				$ip, 
-				$placement,
-				$cluster, 
-				$device, 
-				$placement_id, 
-				$retargetted,
-				$isUnderFrequencyCap,
-				$matchesClusterTargeting,
-				$exchangeId,
-				$pubId,
-				$subpubId,
-				$deviceId,
-				$idfa,
-				$gaid									
-			);				
+			if ( $this->_registry->httpRequest->getParam('test_campaign_pool')!=1 )
+			{
+				$this->_clusterLog(
+					$clusterImpCount,
+					$sessionHash, 
+					$timestamp, 
+					$ip, 
+					$placement,
+					$cluster, 
+					$device, 
+					$placement_id, 
+					$retargetted,
+					$isUnderFrequencyCap,
+					$matchesClusterTargeting,
+					$exchangeId,
+					$pubId,
+					$subpubId,
+					$deviceId,
+					$idfa,
+					$gaid									
+				);
+			}
+			
 
 
 			//-------------------------------------
@@ -496,6 +506,14 @@
 
 		private function _matchClusterTargeting ( $cluster, array $deviceData )
 		{
+			if ( (int)$this->_debugCluster==9 && (int)$this->_debugPlacement==9 )
+			{
+				$this->_cache->setMap( 'targetdebug', [
+					'cluster_connection_type'	=> $cluster['connection_type'],
+					'request_connection_type'	=> $this->_geolocation->getConnectionType()
+				]);			
+			}
+
 			if ( 
 				$cluster['connection_type'] 
 				&& $cluster['connection_type'] != $this->_geolocation->getConnectionType()
@@ -506,6 +524,13 @@
 				return false;
 			}
 
+			if ( (int)$this->_debugCluster==9 && (int)$this->_debugPlacement==9 )
+			{
+				$this->_cache->setMap( 'targetdebug', [
+					'cluster_country'	=> $cluster['country'],
+					'request_country'	=> $this->_geolocation->getCountryCode()
+				]);			
+			}
 
 			if ( 
 				$cluster['country']
@@ -535,6 +560,14 @@
 				break;
 			}
 
+			if ( (int)$this->_debugCluster==9 && (int)$this->_debugPlacement==9 )
+			{
+				$this->_cache->setMap( 'targetdebug', [
+					'cluster_device_type'	=> $cluster['device_type'],
+					'request_device_type'	=> $device
+				]);			
+			}
+
 			if ( 
 				$cluster['device_type'] 
 				&& $cluster['device_type'] != $device
@@ -543,6 +576,14 @@
 			)
 			{
 				return false;
+			}
+
+			if ( (int)$this->_debugCluster==9 && (int)$this->_debugPlacement==9 )
+			{
+				$this->_cache->setMap( 'targetdebug', [
+					'cluster_os'	=> $cluster['os'],
+					'request_os'	=> $deviceData['os'] 
+				]);			
 			}
 
 			if ( 
@@ -555,15 +596,32 @@
 				return false;
 			}
 
+
+			if ( (int)$this->_debugCluster==9 && (int)$this->_debugPlacement==9 )
+			{
+				$this->_cache->setMap( 'targetdebug', [
+					'cluster_os_version'	=> $cluster['os_version'],
+					'request_os_version'	=> $deviceData['os_version'] 
+				]);			
+			}
+
 			if ( 
 				$cluster['os_version'] 
-				&& (float)$cluster['os_version'] <= (float)$deviceData['os'] 
-				&& $cluster['os'] != '-'
-				&& $cluster['os'] != ''
+				&& (float)$cluster['os_version'] <= (float)$deviceData['os_version'] 
+				&& $cluster['os_version'] != '-'
+				&& $cluster['os_version'] != ''
 			)
 			{
 				return false;
 			}			
+
+			if ( (int)$this->_debugCluster==9 && (int)$this->_debugPlacement==9 )
+			{
+				$this->_cache->setMap( 'targetdebug', [
+					'cluster_carrier'	=> $cluster['carrier'],
+					'request_carrier'	=> $this->_geolocation->getMobileCarrier() 
+				]);			
+			}
 
 			if ( 
 				$cluster['carrier'] 
