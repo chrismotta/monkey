@@ -19,7 +19,6 @@
 		private $_excludedAffiliates;
 		private $_excludedPackageIds;
 		private $_debugPlacement;
-		private $_debugCluster;
 
 
 		public function __construct ( 
@@ -38,6 +37,7 @@
 			$this->_cache           	= $cache;
 			$this->_campaignSelection	= $campaignSelection;
 			$this->_fraudDetection		= $fraudDetection;
+			$this->_debugPlacement      = false;
 		}
 
 
@@ -57,11 +57,19 @@
 			$timestamp  = $this->_registry->httpRequest->getTimestamp();
 
 			// if idfa or gaid exist and is valid then use it as session ID
-			if ( $idfa && \preg_match( '/^[A-Fa-f0-9]{8}(-)[A-Fa-f0-9]{4}(-)[A-Fa-f0-9]{4}(-)[A-Fa-f0-9]{4}(-)[A-Fa-f0-9]{12}$/', $idfa ) )
+			if ( 
+				$idfa 
+				&& $idfa != '00000000-0000-0000-0000-000000000000' 
+				&& \preg_match( '/^[A-Fa-f0-9]{8}(-)[A-Fa-f0-9]{4}(-)[A-Fa-f0-9]{4}(-)[A-Fa-f0-9]{4}(-)[A-Fa-f0-9]{12}$/', $idfa ) 				
+			)
 			{
 				$sessionId = $idfa;
 			}
-			else if ( $gaid && \preg_match_all( '/^[A-Fa-f0-9]{8}(-)[A-Fa-f0-9]{4}(-)[A-Fa-f0-9]{4}(-)[A-Fa-f0-9]{4}(-)[A-Fa-f0-9]{12}$/', $gaid ) )
+			else if ( 
+				$gaid 
+				&& $gaid != '00000000-0000-0000-0000-000000000000' 
+				&& \preg_match( '/^[A-Fa-f0-9]{8}(-)[A-Fa-f0-9]{4}(-)[A-Fa-f0-9]{4}(-)[A-Fa-f0-9]{4}(-)[A-Fa-f0-9]{12}$/', $gaid ) 
+			)
 			{
 				$sessionId = $gaid;
 			}
@@ -99,10 +107,11 @@
 				return false;				
 			}
 
-			$this->_debugPlacement = $placement_id;
-			$this->_debugCluster   = $placement['cluster_id'];
-
-			$this->_cache->remove( 'targetdebug');
+			if ( isset( $_GET['debug_placement'] ) && $placement_id == $_GET['debug_placement'] )
+			{
+				$this->_debugPlacement = true;
+				$this->_cache->remove( 'lastdebug');
+			}
 
 			$cluster = $this->_cache->getMap( 'cluster:'.$placement['cluster_id'] );
 			$device  = $this->_getDeviceData( $userAgent );
@@ -159,9 +168,9 @@
 			else
 				$isUnderFrequencyCap = false;
 
-			if ( (int)$this->_debugCluster==9 && (int)$this->_debugPlacement==9 )
+			if ( $this->_debugPlacement )
 			{
-				$this->_cache->setMap( 'targetdebug', [
+				$this->_cache->setMap( 'lastdebug', [
 					'ip'					 => $ip,
 					'session_hash'			 => $sessionHash,
 					'previous_imp_count' 	 => $clusterImpCount,
@@ -189,9 +198,9 @@
 				|| ( $clusterImpCount && $logWasTargetted )
 			)
 			{
-				if ( (int)$this->_debugCluster==9 && (int)$this->_debugPlacement==9 )
+				if ( $this->_debugPlacement )
 				{
-					$this->_cache->setMap( 'targetdebug', [
+					$this->_cache->setMap( 'lastdebug', [
 						'repeated_imp'	=> 'yes',
 					]);										
 				}						
@@ -200,9 +209,9 @@
 			}
 			else
 			{		
-				if ( (int)$this->_debugCluster==9 && (int)$this->_debugPlacement==9 )
+				if ( $this->_debugPlacement )
 				{
-					$this->_cache->setMap( 'targetdebug', [
+					$this->_cache->setMap( 'lastdebug', [
 						'repeated_imp'	=> 'no',
 					]);										
 				}						
@@ -223,9 +232,9 @@
 
 				$this->_cache->useDatabase( $this->_getCurrentDatabase() );
 
-				if ( (int)$this->_debugCluster==9 && (int)$this->_debugPlacement==9 )
+				if ( $this->_debugPlacement )
 				{
-					$this->_cache->setMap( 'targetdebug', [
+					$this->_cache->setMap( 'lastdebug', [
 						'ip_in_blacklist'	=> $banned,
 					]);										
 				}			
@@ -245,9 +254,9 @@
 
 					// if fraud detection passes, log and do retargeting
 
-					if ( (int)$this->_debugCluster==9 && (int)$this->_debugPlacement==9 )
+					if ( $this->_debugPlacement )
 					{
-						$this->_cache->setMap( 'targetdebug', [
+						$this->_cache->setMap( 'lastdebug', [
 							'forensiq_success'	=> $detectionSuccess,
 							'risk_level'		=> $this->_fraudDetection->getRiskLevel(),
 							'forensiq_passed'	=> 'no'							
@@ -256,9 +265,9 @@
 
 					if ( $detectionSuccess && $this->_fraudDetection->getRiskLevel() <= Config\Ad::FRAUD_RISK_LVL )
 					{
-						if ( (int)$this->_debugCluster==9 && (int)$this->_debugPlacement==9 )
+						if ( $this->_debugPlacement )
 						{
-							$this->_cache->setMap( 'targetdebug', [
+							$this->_cache->setMap( 'lastdebug', [
 								'forensiq_passed'	=> 'yes'
 							]);										
 						}	
@@ -285,10 +294,10 @@
 
 								$this->_newCampaignLog( $clickId, $sessionHash, $campaignId, $timestamp );
 
-								if ( (int)$this->_debugCluster==9 && (int)$this->_debugPlacement==9 )
+								if ( $this->_debugPlacement )
 								{
 									$i = 'click_id'.$c;
-									$this->_cache->setMap( 'targetdebug', [
+									$this->_cache->setMap( 'lastdebug', [
 										$i => $clickId,
 										'risk_level'		=> $this->_fraudDetection->getRiskLevel()
 									]);										
@@ -566,9 +575,9 @@
 
 		private function _matchClusterTargeting ( $cluster, array $deviceData )
 		{
-			if ( (int)$this->_debugCluster==9 && (int)$this->_debugPlacement==9 )
+			if ( $this->_debugPlacement )
 			{
-				$this->_cache->setMap( 'targetdebug', [
+				$this->_cache->setMap( 'lastdebug', [
 					'cluster_connection_type'	=> $cluster['connection_type'],
 					'request_connection_type'	=> $this->_geolocation->getConnectionType()
 				]);			
@@ -584,9 +593,9 @@
 				return false;
 			}
 
-			if ( (int)$this->_debugCluster==9 && (int)$this->_debugPlacement==9 )
+			if ( $this->_debugPlacement )
 			{
-				$this->_cache->setMap( 'targetdebug', [
+				$this->_cache->setMap( 'lastdebug', [
 					'cluster_country'	=> $cluster['country'],
 					'request_country'	=> $this->_geolocation->getCountryCode()
 				]);			
@@ -620,9 +629,9 @@
 				break;
 			}
 
-			if ( (int)$this->_debugCluster==9 && (int)$this->_debugPlacement==9 )
+			if ( $this->_debugPlacement )
 			{
-				$this->_cache->setMap( 'targetdebug', [
+				$this->_cache->setMap( 'lastdebug', [
 					'cluster_device_type'	=> $cluster['device_type'],
 					'request_device_type'	=> $device
 				]);			
@@ -638,9 +647,9 @@
 				return false;
 			}
 
-			if ( (int)$this->_debugCluster==9 && (int)$this->_debugPlacement==9 )
+			if ( $this->_debugPlacement )
 			{
-				$this->_cache->setMap( 'targetdebug', [
+				$this->_cache->setMap( 'lastdebug', [
 					'cluster_os'	=> $cluster['os'],
 					'request_os'	=> $deviceData['os'] 
 				]);			
@@ -658,9 +667,9 @@
 			}			
 
 
-			if ( (int)$this->_debugCluster==9 && (int)$this->_debugPlacement==9 )
+			if ( $this->_debugPlacement )
 			{
-				$this->_cache->setMap( 'targetdebug', [
+				$this->_cache->setMap( 'lastdebug', [
 					'cluster_os_version'	=> $cluster['os_version'],
 					'request_os_version'	=> $deviceData['os_version'] 
 				]);			
@@ -676,9 +685,9 @@
 				return false;
 			}			
 
-			if ( (int)$this->_debugCluster==9 && (int)$this->_debugPlacement==9 )
+			if ( $this->_debugPlacement )
 			{
-				$this->_cache->setMap( 'targetdebug', [
+				$this->_cache->setMap( 'lastdebug', [
 					'cluster_carrier'	=> $cluster['carrier'],
 					'request_carrier'	=> $this->_geolocation->getMobileCarrier() 
 				]);			
