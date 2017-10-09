@@ -148,6 +148,14 @@
 			// check cluster targeting
 			$matchesClusterTargeting = $this->_matchClusterTargeting( $cluster, $device );
 
+			if ( (int)$this->_debugCluster==9 && (int)$this->_debugPlacement==9 )
+			{
+				$this->_cache->setMap( 'targetdebug', [
+					'ip'				=> $ip,
+					'targeting_result'	=> $matchesClusterTargeting,
+				]);										
+			}
+
 			// check frequency cap
 			if( $clusterImpCount < $placement['frequency_cap'] )
 				$isUnderFrequencyCap = true;
@@ -211,14 +219,7 @@
 					$this->_cache->setMap( 'targetdebug', [
 						'ip_in_blacklist'	=> $banned,
 					]);										
-				}
-
-				if ( (int)$this->_debugCluster==9 && (int)$this->_debugPlacement==9 )
-				{
-					$this->_cache->setMap( 'targetdebug', [
-						'targeting_result'	=> $matchesClusterTargeting,
-					]);										
-				}				
+				}			
 
 				// match cluster targeting. If not, skip retargeting
 				if ( !$banned && $matchesClusterTargeting )
