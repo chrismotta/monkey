@@ -148,20 +148,23 @@
 			// check cluster targeting
 			$matchesClusterTargeting = $this->_matchClusterTargeting( $cluster, $device );
 
-			if ( (int)$this->_debugCluster==9 && (int)$this->_debugPlacement==9 )
-			{
-				$this->_cache->setMap( 'targetdebug', [
-					'ip'				=> $ip,
-					'session_hash'		=> $sessionHash,
-					'targeting_result'	=> $matchesClusterTargeting,
-				]);										
-			}
-
 			// check frequency cap
 			if( $clusterImpCount < $placement['frequency_cap'] )
 				$isUnderFrequencyCap = true;
 			else
 				$isUnderFrequencyCap = false;
+
+			if ( (int)$this->_debugCluster==9 && (int)$this->_debugPlacement==9 )
+			{
+				$this->_cache->setMap( 'targetdebug', [
+					'ip'				=> $ip,
+					'session_hash'		=> $sessionHash,
+					'previous_imp_count' => $clusterImpCount,
+					'under_cap'			=> $isUnderFrequencyCap,
+					'previous_log_targetted' => $logWasTargetted,
+					'targeting_result'	=> $matchesClusterTargeting,
+				]);										
+			}			
 
 			// print debug data
 			if ( Config\Ad::DEBUG_HTML )
@@ -522,21 +525,8 @@
 					case 'CPM':
 						$this->_cache->incrementMapField( 'clusterlog:'.$sessionHash, 'cost', $placement['payout']/1000 );
 					break;
-				}
-
-				if ( (int)$this->_debugCluster==9 && (int)$this->_debugPlacement==9 )
-				{
-					$this->_cache->setMap( 'targetdebug', [
-						'under_cap'	=> 'yes',
-					]);										
-				}					
-			}
-			else if ( (int)$this->_debugCluster==9 && (int)$this->_debugPlacement==9 )
-			{
-				$this->_cache->setMap( 'targetdebug', [
-					'under_cap'	=> 'no',
-				]);										
-			}		
+				}				
+			}	
 
 			if ( $retargetted )
 				$this->_cache->setMapField( 'clusterlog:'.$sessionHash, 'targetted', $retargetted );
