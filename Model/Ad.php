@@ -152,6 +152,7 @@
 			{
 				$this->_cache->setMap( 'targetdebug', [
 					'ip'				=> $ip,
+					'session_hash'		=> $sessionHash,
 					'targeting_result'	=> $matchesClusterTargeting,
 				]);										
 			}
