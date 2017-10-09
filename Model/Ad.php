@@ -172,11 +172,23 @@
 				|| ( $clusterImpCount && $logWasTargetted )
 			)
 			{
+				if ( (int)$this->_debugCluster==9 && (int)$this->_debugPlacement==9 )
+				{
+					$this->_cache->setMap( 'targetdebug', [
+						'repeated_imp'	=> 'yes',
+					]);										
+				}						
 				// SKIP RETARGETING		
 				$retargetted = false;	
 			}
 			else
-			{			
+			{		
+				if ( (int)$this->_debugCluster==9 && (int)$this->_debugPlacement==9 )
+				{
+					$this->_cache->setMap( 'targetdebug', [
+						'repeated_imp'	=> 'no',
+					]);										
+				}						
 				// RETARGETING ON
 				
 				// skip retargeting by default
@@ -497,7 +509,20 @@
 						$this->_cache->incrementMapField( 'clusterlog:'.$sessionHash, 'cost', $placement['payout']/1000 );
 					break;
 				}
+
+				if ( (int)$this->_debugCluster==9 && (int)$this->_debugPlacement==9 )
+				{
+					$this->_cache->setMap( 'targetdebug', [
+						'under_cap'	=> 'yes',
+					]);										
+				}					
 			}
+			else if ( (int)$this->_debugCluster==9 && (int)$this->_debugPlacement==9 )
+			{
+				$this->_cache->setMap( 'targetdebug', [
+					'under_cap'	=> 'no',
+				]);										
+			}		
 
 			if ( $retargetted )
 				$this->_cache->setMapField( 'clusterlog:'.$sessionHash, 'targetted', $retargetted );
