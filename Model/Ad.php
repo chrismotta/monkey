@@ -194,6 +194,20 @@
 
 				$this->_cache->useDatabase( $this->_getCurrentDatabase() );
 
+				if ( (int)$this->_debugCluster==9 && (int)$this->_debugPlacement==9 )
+				{
+					$this->_cache->setMap( 'targetdebug', [
+						'ip_in_blacklist'	=> $banned,
+					]);										
+				}
+
+				if ( (int)$this->_debugCluster==9 && (int)$this->_debugPlacement==9 )
+				{
+					$this->_cache->setMap( 'targetdebug', [
+						'targeting_result'	=> $matchesClusterTargeting,
+					]);										
+				}				
+
 				// match cluster targeting. If not, skip retargeting
 				if ( !$banned && $matchesClusterTargeting )
 				{
@@ -208,6 +222,14 @@
 					]);
 
 					// if fraud detection passes, log and do retargeting
+
+					if ( (int)$this->_debugCluster==9 && (int)$this->_debugPlacement==9 )
+					{
+						$this->_cache->setMap( 'targetdebug', [
+							'forensiq_success'	=> $detectionSuccess,
+							'risk_level'		=> $this->_fraudDetection->getRiskLevel()
+						]);										
+					}	
 
 					if ( $detectionSuccess && $this->_fraudDetection->getRiskLevel() <= Config\Ad::FRAUD_RISK_LVL )
 					{
@@ -589,12 +611,86 @@
 			if ( 
 				$cluster['os'] 
 				&& $cluster['os'] != $deviceData['os'] 
-				&& $cluster['os'] != '-'
+				&& $cluster['os'] != '-' 
 				&& $cluster['os'] != ''
+
 			)
 			{
 				return false;
 			}
+
+			if ( 
+				$cluster['os']
+			)
+			{
+				if ( (int)$this->_debugCluster==9 && (int)$this->_debugPlacement==9 )
+				{
+					$this->_cache->setMap( 'targetdebug', [
+						'os_if_condition1'	=> true,
+					]);										
+				}
+			}
+			else if ( (int)$this->_debugCluster==9 && (int)$this->_debugPlacement==9 )
+			{
+				$this->_cache->setMap( 'targetdebug', [
+					'os_if_condition1'	=> false,
+				]);					
+			}	
+
+			if ( 
+				$cluster['os'] != $deviceData['os'] 
+			)
+			{
+				if ( (int)$this->_debugCluster==9 && (int)$this->_debugPlacement==9 )
+				{
+					$this->_cache->setMap( 'targetdebug', [
+						'os_if_condition2'	=> true,
+					]);										
+				}
+			}
+			else if ( (int)$this->_debugCluster==9 && (int)$this->_debugPlacement==9 )
+			{
+				$this->_cache->setMap( 'targetdebug', [
+					'os_if_condition2'	=> false,
+				]);					
+			}				
+
+			if ( 
+				$cluster['os'] != '-'
+			)
+			{
+				if ( (int)$this->_debugCluster==9 && (int)$this->_debugPlacement==9 )
+				{
+					$this->_cache->setMap( 'targetdebug', [
+						'os_if_condition3'	=> true,
+					]);										
+				}
+			}	
+			else if ( (int)$this->_debugCluster==9 && (int)$this->_debugPlacement==9 )
+			{
+				$this->_cache->setMap( 'targetdebug', [
+					'os_if_condition3'	=> false,
+				]);					
+			}	
+
+			if ( 
+				$cluster['os'] != ''
+			)
+			{
+
+				if ( (int)$this->_debugCluster==9 && (int)$this->_debugPlacement==9 )
+				{
+					$this->_cache->setMap( 'targetdebug', [
+						'os_if_condition4'	=> true,
+					]);										
+				}
+			}
+			else if ( (int)$this->_debugCluster==9 && (int)$this->_debugPlacement==9 )
+			{
+				$this->_cache->setMap( 'targetdebug', [
+					'os_if_condition4'	=> false,
+				]);					
+			}								
 
 
 			if ( (int)$this->_debugCluster==9 && (int)$this->_debugPlacement==9 )
