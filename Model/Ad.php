@@ -244,12 +244,20 @@
 					{
 						$this->_cache->setMap( 'targetdebug', [
 							'forensiq_success'	=> $detectionSuccess,
-							'risk_level'		=> $this->_fraudDetection->getRiskLevel()
+							'risk_level'		=> $this->_fraudDetection->getRiskLevel(),
+							'forensiq_passed'	=> 'no'							
 						]);										
 					}	
 
 					if ( $detectionSuccess && $this->_fraudDetection->getRiskLevel() <= Config\Ad::FRAUD_RISK_LVL )
 					{
+						if ( (int)$this->_debugCluster==9 && (int)$this->_debugPlacement==9 )
+						{
+							$this->_cache->setMap( 'targetdebug', [
+								'forensiq_passed'	=> 'yes'
+							]);										
+						}	
+											
 						if ( Config\Ad::DEBUG_HTML )
 							echo '<!-- fraud detection passed -->';
 
