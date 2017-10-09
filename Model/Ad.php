@@ -56,10 +56,15 @@
 			$gaid   	= $this->_registry->httpRequest->getParam('gaid');
 			$timestamp  = $this->_registry->httpRequest->getTimestamp();
 
-			if ( $idfa )
+			// if idfa or gaid exist and is valid then use it as session ID
+			if ( $idfa && \preg_match( '/^[A-Fa-f0-9]{8}(-)[A-Fa-f0-9]{4}(-)[A-Fa-f0-9]{4}(-)[A-Fa-f0-9]{4}(-)[A-Fa-f0-9]{12}$/', $idfa ) )
+			{
 				$sessionId = $idfa;
-			else if ( $gaid )
+			}
+			else if ( $gaid && \preg_match_all( '/^[A-Fa-f0-9]{8}(-)[A-Fa-f0-9]{4}(-)[A-Fa-f0-9]{4}(-)[A-Fa-f0-9]{4}(-)[A-Fa-f0-9]{12}$/', $gaid ) )
+			{
 				$sessionId = $gaid;
+			}
 
 			// check if load balancer exists. If exists get original ip from X-Forwarded-For header
 			$ip = $this->_registry->httpRequest->getHeader('X-Forwarded-For');
@@ -149,7 +154,7 @@
 			$matchesClusterTargeting = $this->_matchClusterTargeting( $cluster, $device );
 
 			// check frequency cap
-			if( $clusterImpCount < $placement['frequency_cap'] )
+			if( $clusterImpCount && (int)$clusterImpCount < $placement['frequency_cap'] )
 				$isUnderFrequencyCap = true;
 			else
 				$isUnderFrequencyCap = false;
@@ -157,12 +162,12 @@
 			if ( (int)$this->_debugCluster==9 && (int)$this->_debugPlacement==9 )
 			{
 				$this->_cache->setMap( 'targetdebug', [
-					'ip'				=> $ip,
-					'session_hash'		=> $sessionHash,
-					'previous_imp_count' => $clusterImpCount,
-					'under_cap'			=> $isUnderFrequencyCap,
+					'ip'					 => $ip,
+					'session_hash'			 => $sessionHash,
+					'previous_imp_count' 	 => $clusterImpCount,
+					'under_cap'				 => $isUnderFrequencyCap,
 					'previous_log_targetted' => $logWasTargetted,
-					'targeting_result'	=> $matchesClusterTargeting,
+					'targeting_matched'		 => $matchesClusterTargeting,
 				]);										
 			}			
 
@@ -326,18 +331,15 @@
 					$device, 
 					$placement_id, 
 					$retargetted,
-					$isUnderFrequencyCap,
 					$matchesClusterTargeting,
 					$exchangeId,
 					$pubId,
 					$subpubId,
 					$deviceId,
 					$idfa,
-					$gaid									
+					$gaid
 				);
 			}
-			
-
 
 			//-------------------------------------
 			// RENDER
@@ -401,14 +403,13 @@
 			array $device, 
 			$placementId, 
 			$retargetted,
-			$underFreqCap,
 			$matchesClusterTargeting,
 			$exchangeId,
 			$pubId,
 			$subpubId,
 			$deviceId,
 			$idfa,
-			$gaid		
+			$gaid	
 		)
 		{
 			// if cluster log already exists increment, otherwise create new
@@ -417,7 +418,7 @@
 				if ( Config\Ad::DEBUG_HTML )
 					echo '<!-- increment log -->';
 
-				$this->_incrementClusterLog( $sessionHash, $placement, $underFreqCap, $timestamp, $retargetted, $matchesClusterTargeting );
+				$this->_incrementClusterLog( $sessionHash, $placement, $timestamp, $clusterImpCount, $retargetted, $matchesClusterTargeting );
 			}
 			else
 			{
@@ -519,14 +520,14 @@
 		private function _incrementClusterLog ( 
 			$sessionHash, 
 			array $placement, 
-			$isUnderFreqCap, 
 			$timestamp, 
+			$clusterImpCount, 
 			$retargetted, 
 			$matchesClusterTargeting 
 		)
 		{
 			// if imp count is under frequency cap, add cost
-			if ( $isUnderFreqCap && $matchesClusterTargeting )
+			if ( $clusterImpCount < $placement['frequency_cap'] && $matchesClusterTargeting )
 			{
 				switch ( $placement['model'] )
 				{
@@ -654,80 +655,7 @@
 			)
 			{
 				return false;
-			}
-
-			if ( 
-				$cluster['os']
-			)
-			{
-				if ( (int)$this->_debugCluster==9 && (int)$this->_debugPlacement==9 )
-				{
-					$this->_cache->setMap( 'targetdebug', [
-						'os_if_condition1'	=> true,
-					]);										
-				}
-			}
-			else if ( (int)$this->_debugCluster==9 && (int)$this->_debugPlacement==9 )
-			{
-				$this->_cache->setMap( 'targetdebug', [
-					'os_if_condition1'	=> false,
-				]);					
-			}	
-
-			if ( 
-				$cluster['os'] != $deviceData['os'] 
-			)
-			{
-				if ( (int)$this->_debugCluster==9 && (int)$this->_debugPlacement==9 )
-				{
-					$this->_cache->setMap( 'targetdebug', [
-						'os_if_condition2'	=> true,
-					]);										
-				}
-			}
-			else if ( (int)$this->_debugCluster==9 && (int)$this->_debugPlacement==9 )
-			{
-				$this->_cache->setMap( 'targetdebug', [
-					'os_if_condition2'	=> false,
-				]);					
-			}				
-
-			if ( 
-				$cluster['os'] != '-'
-			)
-			{
-				if ( (int)$this->_debugCluster==9 && (int)$this->_debugPlacement==9 )
-				{
-					$this->_cache->setMap( 'targetdebug', [
-						'os_if_condition3'	=> true,
-					]);										
-				}
-			}	
-			else if ( (int)$this->_debugCluster==9 && (int)$this->_debugPlacement==9 )
-			{
-				$this->_cache->setMap( 'targetdebug', [
-					'os_if_condition3'	=> false,
-				]);					
-			}	
-
-			if ( 
-				$cluster['os'] != ''
-			)
-			{
-
-				if ( (int)$this->_debugCluster==9 && (int)$this->_debugPlacement==9 )
-				{
-					$this->_cache->setMap( 'targetdebug', [
-						'os_if_condition4'	=> true,
-					]);										
-				}
-			}
-			else if ( (int)$this->_debugCluster==9 && (int)$this->_debugPlacement==9 )
-			{
-				$this->_cache->setMap( 'targetdebug', [
-					'os_if_condition4'	=> false,
-				]);					
-			}								
+			}			
 
 
 			if ( (int)$this->_debugCluster==9 && (int)$this->_debugPlacement==9 )
