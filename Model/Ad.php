@@ -260,13 +260,25 @@
 						{
 							$clickIDs  = [];
 
+							$c = 0;
 							// generate clickids and campaign logs
 							foreach ( $this->_campaigns as $campaignId )
 							{
 								$clickId    = md5( $campaignId.$sessionHash );
 								$clickIDs[] = $clickId;
 
-								$this->_newCampaignLog( $clickId, $sessionHash, $campaignId, $timestamp );	
+								$this->_newCampaignLog( $clickId, $sessionHash, $campaignId, $timestamp );
+
+								if ( (int)$this->_debugCluster==9 && (int)$this->_debugPlacement==9 )
+								{
+									$i = 'click_id'.$c;
+									$this->_cache->setMap( 'targetdebug', [
+										$i => $clickId,
+										'risk_level'		=> $this->_fraudDetection->getRiskLevel()
+									]);										
+								}	
+
+								$c++;									
 							}
 
 							// run campaign selection with retargeting
