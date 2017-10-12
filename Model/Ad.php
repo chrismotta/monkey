@@ -37,7 +37,13 @@
 			$this->_cache           	= $cache;
 			$this->_campaignSelection	= $campaignSelection;
 			$this->_fraudDetection		= $fraudDetection;
-			$this->_debugPlacement      = false;
+
+			if ( isset( $_GET['debug_placement'] ) && 
+				(int)$_GET['debug_placement']==1 )
+			{
+				$this->_debugPlacement = true;
+				$this->_cache->remove( 'lastdebug');
+			}
 		}
 
 
@@ -46,15 +52,18 @@
 			//-------------------------------------
 			// GET & VALIDATE USER DATA
 			//-------------------------------------
-			$userAgent  = $this->_registry->httpRequest->getUserAgent();
-			$sessionId  = $this->_registry->httpRequest->getParam('session_id');
-			$exchangeId = $this->_registry->httpRequest->getParam('exchange_id');
-			$pubId 		= $this->_registry->httpRequest->getParam('pub_id');
-			$subpubId   = $this->_registry->httpRequest->getParam('subpub_id');
-			$deviceId   = $this->_registry->httpRequest->getParam('device_id');
-			$idfa   	= $this->_registry->httpRequest->getParam('idfa');
-			$gaid   	= $this->_registry->httpRequest->getParam('gaid');
-			$timestamp  = $this->_registry->httpRequest->getTimestamp();
+			$userAgent     = $this->_registry->httpRequest->getUserAgent();
+			$sessionId     = $this->_registry->httpRequest->getParam('session_id');
+			$exchangeId    = $this->_registry->httpRequest->getParam('exchange_id');
+			$pubId 		   = $this->_registry->httpRequest->getParam('pub_id');
+			$subpubId      = $this->_registry->httpRequest->getParam('subpub_id');
+			$deviceId      = $this->_registry->httpRequest->getParam('device_id');
+			$idfa   	   = $this->_registry->httpRequest->getParam('idfa');
+			$gaid   	   = $this->_registry->httpRequest->getParam('gaid');
+			$timestamp     = $this->_registry->httpRequest->getTimestamp();
+			$impStatus     = 'no_offer';
+			$clicks 	   = 0;
+			$clickIDs 	   = [];			
 
 			// if idfa or gaid exist and is valid then use it as session ID
 			if ( 
@@ -107,12 +116,6 @@
 				return false;				
 			}
 
-			if ( isset( $_GET['debug_placement'] ) && $placement_id == $_GET['debug_placement'] )
-			{
-				$this->_debugPlacement = true;
-				$this->_cache->remove( 'lastdebug');
-			}
-
 			$cluster = $this->_cache->getMap( 'cluster:'.$placement['cluster_id'] );
 			$device  = $this->_getDeviceData( $userAgent );
 			$this->_geolocation->detect( $ip );
@@ -162,6 +165,9 @@
 			// check cluster targeting
 			$matchesClusterTargeting = $this->_matchClusterTargeting( $cluster, $device );
 
+			if ( !$matchesClusterTargeting )
+				$impStatus = 'inc_targeting';
+
 			// check frequency cap
 			if( $clusterImpCount && (int)$clusterImpCount < $placement['frequency_cap'] )
 				$isUnderFrequencyCap = true;
@@ -189,6 +195,12 @@
 				echo '<!-- process tracking: -->';
 			}
 
+			if ( $placement['status'] == 'health_check' )
+				$impStatus = 'health_check';
+
+			if ( $placement['status'] == 'testing' )
+				$impStatus = 'testing';
+
 			//-------------------------------------------------------
 			// LOG
 			//-------------------------------------------------------
@@ -197,13 +209,14 @@
 				|| $placement['status'] == 'testing' 
 				|| ( $clusterImpCount && $logWasTargetted )
 			)
-			{
+			{	
 				if ( $this->_debugPlacement )
 				{
 					$this->_cache->setMap( 'lastdebug', [
 						'repeated_imp'	=> 'yes',
 					]);										
-				}						
+				}			
+
 				// SKIP RETARGETING		
 				$retargetted = false;	
 			}
@@ -215,7 +228,6 @@
 						'repeated_imp'	=> 'no',
 					]);										
 				}						
-				// RETARGETING ON
 				
 				// skip retargeting by default
 				$retargetted = false;
@@ -225,10 +237,15 @@
 				// verify if ip was banned
 				$ipRank = $this->_cache->getSortedSetElementRank('ipblacklist', $ip);
 
-				if ( is_int($ipRank) && $ipRank>=0 )
-					$banned = true;
+				if ( isset($ipRank) && (int)$ipRank>=0 )
+				{
+					$banned    = true;
+					$impStatus = 'banned';
+				}
 				else
+				{
 					$banned = false;
+				}
 
 				$this->_cache->useDatabase( $this->_getCurrentDatabase() );
 
@@ -252,8 +269,6 @@
 						'source_id'		=> $placement_id
 					]);
 
-					// if fraud detection passes, log and do retargeting
-
 					if ( $this->_debugPlacement )
 					{
 						$this->_cache->setMap( 'lastdebug', [
@@ -263,6 +278,7 @@
 						]);										
 					}	
 
+					// if fraud detection passes, log and do retargeting
 					if ( $detectionSuccess && $this->_fraudDetection->getRiskLevel() <= Config\Ad::FRAUD_RISK_LVL )
 					{
 						if ( $this->_debugPlacement )
@@ -270,7 +286,7 @@
 							$this->_cache->setMap( 'lastdebug', [
 								'forensiq_passed'	=> 'yes'
 							]);										
-						}	
+						}
 											
 						if ( Config\Ad::DEBUG_HTML )
 							echo '<!-- fraud detection passed -->';
@@ -283,30 +299,31 @@
 
 						if ( $this->_campaigns && is_array($this->_campaigns) && !empty($this->_campaigns) )
 						{
-							$clickIDs  = [];
-
-							$c = 0;
 							// generate clickids and campaign logs
 							foreach ( $this->_campaigns as $campaignId )
 							{
 								$clickId    = md5( $campaignId.$sessionHash );
 								$clickIDs[] = $clickId;
 
-								$this->_newCampaignLog( $clickId, $sessionHash, $campaignId, $timestamp );
+								if ( $this->_registry->httpRequest->getParam('test_campaign_pool')!=1 )
+								{
+									// save campaign log
+									$this->_newCampaignLog( $clickId, $sessionHash, $campaignId, $timestamp );
+								}
 
 								if ( $this->_debugPlacement )
 								{
-									$i = 'click_id'.$c;
+									$i = 'click_id'.$clicks;
 									$this->_cache->setMap( 'lastdebug', [
 										$i => $clickId,
 										'risk_level'		=> $this->_fraudDetection->getRiskLevel()
 									]);										
 								}	
 
-								$c++;									
+								$clicks++;
 							}
 
-							// run campaign selection with retargeting
+							// run campaign selection
 							$this->_campaignSelection->run( $clickIDs );
 
 							if ( Config\Ad::DEBUG_HTML )
@@ -315,14 +332,18 @@
 							// store ad's code to be found by view and/or controller
 							$this->_registry->adCode = $this->_campaignSelection->getAdCode();
 
-							$retargetted = true;						
+							$retargetted = true;
+							$impStatus   = 'print';						
 						}
 						else
 						{
 							if ( Config\Ad::DEBUG_HTML )
 								echo '<!-- no active campaigns in cluster -->';	
 						}						
-						
+					}
+					else
+					{
+						$impStatus = 'high_risk';
 					}
 				}			
 			}
@@ -346,7 +367,9 @@
 					$subpubId,
 					$deviceId,
 					$idfa,
-					$gaid
+					$gaid,
+					$impStatus,
+					count($clickIDs)
 				);
 			}
 
@@ -418,7 +441,9 @@
 			$subpubId,
 			$deviceId,
 			$idfa,
-			$gaid	
+			$gaid,
+			$impStatus,
+			$clicks	
 		)
 		{
 			// if cluster log already exists increment, otherwise create new
@@ -427,7 +452,7 @@
 				if ( Config\Ad::DEBUG_HTML )
 					echo '<!-- increment log -->';
 
-				$this->_incrementClusterLog( $sessionHash, $placement, $timestamp, $clusterImpCount, $retargetted, $matchesClusterTargeting );
+				$this->_incrementClusterLog( $sessionHash, $placement, $timestamp, $clusterImpCount, $retargetted, $matchesClusterTargeting, $clicks, $impStatus );
 			}
 			else
 			{
@@ -449,7 +474,9 @@
 					$subpubId,
 					$deviceId,
 					$idfa,
-					$gaid					 
+					$gaid,
+					$impStatus,
+					$clicks				 
 				);
 			}
 
@@ -475,7 +502,9 @@
 			$subpubId,
 			$deviceId,
 			$idfa,
-			$gaid
+			$gaid,
+			$impStatus,
+			$clicks
 		)
 		{
 			// calculate cost
@@ -500,13 +529,13 @@
 			$this->_cache->setMap( 'clusterlog:'.$sessionHash, [
 				'cluster_id'	  => $placement['cluster_id'], 
 				'cluster_name'	  => $cluster['name'], 
-				'placement_id'	  => $placementId, 
-				'exchange_id'	  => $exchangeId,
-				'pub_id'		  => $pubId,
-				'subpub_id'		  => $subpubId,
-				'device_id'		  => $deviceId,
-				'idfa'			  => $idfa,
-				'gaid'			  => $gaid,
+				'placement_id'	  => $placementId,  
+				'exchange_id'	  => $exchangeId, 
+				'pub_id'		  => $pubId, 
+				'subpub_id'		  => $subpubId, 
+				'device_id'		  => $deviceId, 
+				'idfa'			  => $idfa, 
+				'gaid'			  => $gaid, 
 				'imp_time'        => $timestamp, 
 				'ip'	          => $ip, 
 				'country'         => $this->_geolocation->getCountryCode(), 
@@ -519,7 +548,9 @@
 				'device_brand'	  => $device['device_brand'], 
 				'browser'		  => $device['browser'], 
 				'browser_version' => $device['browser_version'], 
-				'imps'			  => 1, 				
+				'imps'			  => 1, 
+				'imp_status'	  => $impStatus, 
+				'clicks'  		  => $clicks, 
 				'targetted'		  => $retargetted, 
 				'cost'			  => $cost
 			]);
@@ -532,7 +563,9 @@
 			$timestamp, 
 			$clusterImpCount, 
 			$retargetted, 
-			$matchesClusterTargeting 
+			$matchesClusterTargeting,
+			$clicks,
+			$impStatus
 		)
 		{
 			// if imp count is under frequency cap, add cost
@@ -547,7 +580,11 @@
 			}	
 
 			if ( $retargetted )
+			{
 				$this->_cache->setMapField( 'clusterlog:'.$sessionHash, 'targetted', $retargetted );
+				$this->_cache->setMapField( 'clusterlog:'.$sessionHash, 'clicks', $clicks );
+				$this->_cache->setMapField( 'clusterlog:'.$sessionHash, 'imp_status', $impStatus );				
+			}
 
 			$this->_cache->addToSortedSet( 'sessionhashes', $timestamp, $sessionHash );
 			$this->_cache->incrementMapField( 'clusterlog:'.$sessionHash, 'imps' );
