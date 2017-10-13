@@ -304,6 +304,7 @@
 							{
 								$clickId    = md5( $campaignId.$sessionHash );
 								$clickIDs[] = $clickId;
+								$clicks++;
 
 								if ( $this->_registry->httpRequest->getParam('test_campaign_pool')!=1 )
 								{
@@ -319,8 +320,6 @@
 										'risk_level'		=> $this->_fraudDetection->getRiskLevel()
 									]);										
 								}	
-
-								$clicks++;
 							}
 
 							// run campaign selection
@@ -807,13 +806,11 @@
 
 			$campaignsTotal = \count($clusterCampaigns);
 
-	
-			// retrieve 5 campaigns
-			$this->_retrieveCampaign( $clusterCampaigns, $campaignsTotal );
-			$this->_retrieveCampaign( $clusterCampaigns, $campaignsTotal );
-			$this->_retrieveCampaign( $clusterCampaigns, $campaignsTotal );
-			$this->_retrieveCampaign( $clusterCampaigns, $campaignsTotal );
-			$this->_retrieveCampaign( $clusterCampaigns, $campaignsTotal );
+			// retrieve campaigns
+			for( $i=0; $i<=5; $i++ )
+			{
+				$this->_retrieveCampaign( $clusterCampaigns, $campaignsTotal );	
+			}
 
 			if ( $this->_registry->httpRequest->getParam('test_campaign_pool')==1 )
 			{
@@ -822,7 +819,6 @@
 				die();
 			}
 		}
-
 
 		private function _retrieveCampaign ( array $clusterCampaigns, $campaignsTotal )
 		{
@@ -839,13 +835,16 @@
 
 			// select campaign from pool
 			$poolCount    = \count($this->_campaignsPool);
-
 			$randPosition = \rand ( 0, $poolCount-1 );
 
 			if ( $poolCount>0 && $randPosition >= 0 )
+			{
 				$selectedCid = $this->_campaignsPool[$randPosition];
+			}
 			else
+			{
 				$selectedCid = false;
+			}
 
 			if ( $selectedCid )
 			{
