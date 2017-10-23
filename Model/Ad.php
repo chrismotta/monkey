@@ -63,7 +63,7 @@
 			$timestamp     = $this->_registry->httpRequest->getTimestamp();
 			$impStatus     = 'no_offer';
 			$clicks 	   = 0;
-			$clickIDs 	   = [];			
+			$clickIDs 	   = [];		
 
 			// if idfa or gaid exist and is valid then use it as session ID
 			if ( 
@@ -201,13 +201,16 @@
 			if ( $placement['status'] == 'testing' )
 				$impStatus = 'testing';
 
+
+
+
 			//-------------------------------------------------------
 			// LOG
 			//-------------------------------------------------------
 			if (
 				$placement['status'] == 'health_check' 
 				|| $placement['status'] == 'testing' 
-				|| ( $clusterImpCount && $logWasTargetted )
+				|| ( $clusterImpCount && $logWasTargetted )						
 			)
 			{	
 				if ( $this->_debugPlacement )
@@ -247,17 +250,34 @@
 					$banned = false;
 				}
 
+				// verify invalid parameters
+				if(
+ 					\preg_match( '/^(((%)(.+)(%))|((\$)(.+)(\$))|((\()(.+)(\)))|((\{)(.+)(\}))|((\[)(.+)(\])))$/', $pubId )
+					|| \preg_match( '/^(((%)(.+)(%))|((\$)(.+)(\$))|((\()(.+)(\)))|((\{)(.+)(\}))|((\[)(.+)(\])))$/', $subpubId )
+					|| \preg_match( '/^(((%)(.+)(%))|((\$)(.+)(\$))|((\()(.+)(\)))|((\{)(.+)(\}))|((\[)(.+)(\])))$/', $gaid )				
+					|| \preg_match( '/^(((%)(.+)(%))|((\$)(.+)(\$))|((\()(.+)(\)))|((\{)(.+)(\}))|((\[)(.+)(\])))$/', $idfa )					
+				)
+				{
+					$invalidParams = true;
+				}
+				else
+				{
+					$invalidParams = false;
+				}
+
+
 				$this->_cache->useDatabase( $this->_getCurrentDatabase() );
 
 				if ( $this->_debugPlacement )
 				{
 					$this->_cache->setMap( 'lastdebug', [
 						'ip_in_blacklist'	=> $banned,
+						'invalid_params'	=> $invalidParams
 					]);										
 				}			
 
 				// match cluster targeting. If not, skip retargeting
-				if ( !$banned && $matchesClusterTargeting )
+				if ( !$banned && $matchesClusterTargeting && !$invalidParams )
 				{
 					if ( Config\Ad::DEBUG_HTML )
 						echo '<!-- matched cluster targeting -->';
