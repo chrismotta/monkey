@@ -259,6 +259,9 @@
 				)
 				{
 					$invalidParams = true;
+
+					if ( $impStatus != 'banned' )
+						$impStatus = 'invalid_param';
 				}
 				else
 				{
