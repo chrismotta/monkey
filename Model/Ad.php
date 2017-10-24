@@ -320,6 +320,9 @@
 
 						$this->_cache->useDatabase( $this->_getCurrentDatabase() );
 
+						if ( count($this->_campaigns)>5 )
+							$this->_cache->addToSortedSet( 'retrievecampaignfails', $timestamp, $sessionHash );
+
 						if ( $this->_campaigns && is_array($this->_campaigns) && !empty($this->_campaigns) )
 						{
 							// generate clickids and campaign logs
@@ -344,6 +347,9 @@
 									]);										
 								}	
 							}
+
+							if ( count($clickIDs)>5 )
+								$this->_cache->addToSortedSet( 'clickcountfails', $timestamp, $sessionHash );
 
 							// run campaign selection
 							$this->_campaignSelection->run( $clickIDs );
