@@ -11,8 +11,21 @@ echo $registry->adCode;
 if ( $registry->adCode )
 {
 	$registry->redis->useDatabase( 7 );
-	$registry->redis->addToSortedSet( 'adcodes', time(), $registry->sessionHash );
-	$registry->redis->set( 'adcode:'.$registry->sessionHash, $registry->adCode );		
+
+	$rank = $registry->redis->getSortedSetElementRank( 'adcodes', $registry->sessionHash );
+
+	if ( isset($rank) )
+	{
+		$registry->redis->addToSortedSet( 'adcodes', time(), $registry->sessionHash.'_repeated' );
+		$registry->redis->set( 'adcode:'.$registry->sessionHash.'_repeated', $registry->adCode );		
+	}
+	else
+	{
+		$registry->redis->addToSortedSet( 'adcodes', time(), $registry->sessionHash );
+		$registry->redis->set( 'adcode:'.$registry->sessionHash, $registry->adCode );		
+	}
+
+	
 }
 
 
