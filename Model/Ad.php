@@ -590,16 +590,12 @@
 			$impStatus
 		)
 		{
-			// if imp count is under frequency cap, add cost
-			if ( $clusterImpCount < $placement['frequency_cap'] && $matchesClusterTargeting )
+			switch ( $placement['model'] )
 			{
-				switch ( $placement['model'] )
-				{
-					case 'CPM':
-						$this->_cache->incrementMapField( 'clusterlog:'.$sessionHash, 'cost', $placement['payout']/1000 );
-					break;
-				}				
-			}	
+				case 'CPM':
+					$this->_cache->incrementMapField( 'clusterlog:'.$sessionHash, 'cost', $placement['payout']/1000 );
+				break;
+			}		
 
 			if ( $retargetted )
 			{
