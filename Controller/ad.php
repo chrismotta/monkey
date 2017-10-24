@@ -20,6 +20,8 @@
 
 		public function route ( )
         {
+            $this->_registry->redis = new Framework\Database\Redis\Predis( 'tcp://'.Config\Ad::REDIS_CONFIG.':6379' );
+            
         	$ad = new Model\Ad(
         		$this->_registry,
         		new Priv\CampaignSelection( $this->_registry ),
@@ -28,7 +30,7 @@
         			new Framework\TCP\HTTP\Client\Request(),
         			Config\Ad::FORENSIQ_KEY
         		),
-        		new Framework\Database\Redis\Predis( 'tcp://'.Config\Ad::REDIS_CONFIG.':6379' ),
+        		$this->_registry->redis,
         		new Framework\Device\Detection\Piwik(),
         		new Framework\TCP\Geolocation\Source\IP2Location( Config\Ad::IP2LOCATION_BIN )
         	);

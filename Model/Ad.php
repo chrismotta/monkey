@@ -149,7 +149,10 @@
 					$ip . 
 					$userAgent								
 				);
-			}			
+			}	
+
+			//debug (quitar)
+			$this->_registry->sessionHash = $sessionHash;		
 
 			//-------------------------------------------------------
 			// CHECK PLACEMENT STATUS, CAP & MATCH CLUSTER TARGETING
@@ -607,7 +610,7 @@
 			{
 				$this->_cache->setMapField( 'clusterlog:'.$sessionHash, 'targetted', $retargetted );
 				$this->_cache->setMapField( 'clusterlog:'.$sessionHash, 'clicks', $clicks );
-				$this->_cache->setMapField( 'clusterlog:'.$sessionHash, 'imp_status', $impStatus );				
+				$this->_cache->setMapField( 'clusterlog:'.$sessionHash, 'imp_status', $impStatus );		
 			}
 
 			$this->_cache->addToSortedSet( 'sessionhashes', $timestamp, $sessionHash );
