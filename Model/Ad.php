@@ -151,6 +151,9 @@
 				);
 			}	
 
+			$this->_cache->useDatabase( 7 );
+			$this->_cache->incrementMapField( 'log:'.$sessionHash, 'imps' );
+
 			//debug (quitar)
 			$this->_registry->sessionHash = $sessionHash;		
 
@@ -203,8 +206,6 @@
 
 			if ( $placement['status'] == 'testing' )
 				$impStatus = 'testing';
-
-
 
 
 			//-------------------------------------------------------
@@ -323,8 +324,6 @@
 
 						$this->_cache->useDatabase( $this->_getCurrentDatabase() );
 
-						if ( count($this->_campaigns)>5 )
-							$this->_cache->addToSortedSet( 'retrievecampaignfails', $timestamp, $sessionHash );
 
 						if ( $this->_campaigns && is_array($this->_campaigns) && !empty($this->_campaigns) )
 						{
@@ -350,9 +349,6 @@
 									]);										
 								}	
 							}
-
-							if ( count($clickIDs)>5 )
-								$this->_cache->addToSortedSet( 'clickcountfails', $timestamp, $sessionHash );
 
 							// run campaign selection
 							$this->_campaignSelection->run( $clickIDs );
