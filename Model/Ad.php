@@ -434,6 +434,15 @@
 				$this->_registry->landingUrl  = $this->_cache->getMapField( 'cluster:'.$placement['cluster_id'], 'static_cp_land' );
 			}
 
+			// debug (quitar)
+			$clusterImpCount = $this->_cache->getMapField( 'clusterlog:'.$sessionHash, 'imps' );			
+			// check if cluster log was targetted
+			$logWasTargetted = $this->_cache->getMapField( 'clusterlog:'.$sessionHash, 'targetted' );
+
+			$this->_cache->useDatabase( 7 );
+			$this->_cache->setMapField( 'log:'.$sessionHash, "".microtime(true)."_end", $clusterImpCount.':'.$logWasTargetted );
+			$this->_cache->useDatabase( $this->_getCurrentDatabase() );
+
 			// Tell controller process completed successfully
 			$this->_registry->status = 200;
 			return true;
