@@ -44,6 +44,11 @@
 				$this->_debugPlacement = true;
 				$this->_cache->remove( 'lastdebug');
 			}
+
+			if ( Config\Ad::DEBUG_ADCODE_LOG )
+				$this->_registry->adCodeLog = 1;
+			else
+				$this->_registry->adCodeLog = 0;
 		}
 
 
@@ -62,8 +67,7 @@
 			$gaid   	   = $this->_registry->httpRequest->getParam('gaid');
 			$timestamp     = $this->_registry->httpRequest->getTimestamp();
 			$impStatus     = 'no_offer';
-			$clicks 	   = 0;
-			$clickIDs 	   = [];		
+			$clickIDs 	   = [];
 
 			// if idfa or gaid exist and is valid then use it as session ID
 			if ( 
@@ -82,6 +86,7 @@
 			{
 				$sessionId = $gaid;
 			}
+
 
 			// check if load balancer exists. If exists get original ip from X-Forwarded-For header
 			$ip = $this->_registry->httpRequest->getHeader('X-Forwarded-For');
@@ -151,10 +156,6 @@
 				);
 			}	
 
-			$this->_cache->useDatabase( 7 );
-			$this->_cache->incrementMapField( 'log:'.$sessionHash, 'totalimps' );
-
-			//debug (quitar)
 			$this->_registry->sessionHash = $sessionHash;		
 
 			//-------------------------------------------------------
@@ -162,15 +163,8 @@
 			//-------------------------------------------------------
 			$this->_cache->useDatabase( $this->_getCurrentDatabase() );
 
-			// check if cluster exists and how many imps
-			$clusterImpCount = $this->_cache->getMapField( 'clusterlog:'.$sessionHash, 'imps' );			
-
-			// check if cluster log was targetted
-			$logWasTargetted = $this->_cache->getMapField( 'clusterlog:'.$sessionHash, 'targetted' );
-
-			$this->_cache->useDatabase( 7 );
-			$this->_cache->setMapField( 'log:'.$sessionHash, "".microtime(true)."", $clusterImpCount.':'.$logWasTargetted );
-			$this->_cache->useDatabase( $this->_getCurrentDatabase() );
+			// write imp and get imp count
+			$clusterLogImpCount = (int)$this->_cache->incrementMapField( 'clusterlog:'.$sessionHash, 'imps' )-1;		
 
 			// check cluster targeting
 			$matchesClusterTargeting = $this->_matchClusterTargeting( $cluster, $device );
@@ -178,20 +172,21 @@
 			if ( !$matchesClusterTargeting )
 				$impStatus = 'inc_targeting';
 
-			// check frequency cap
-			if( $clusterImpCount && (int)$clusterImpCount < $placement['frequency_cap'] )
+			// check frequency cap (DEPRECATED)
+			/*
+			if( $clusterLogImpCount && (int)$clusterLogImpCount < $placement['frequency_cap'] )
 				$isUnderFrequencyCap = true;
 			else
 				$isUnderFrequencyCap = false;
-
+			*/
+		
 			if ( $this->_debugPlacement )
 			{
 				$this->_cache->setMap( 'lastdebug', [
 					'ip'					 => $ip,
 					'session_hash'			 => $sessionHash,
-					'previous_imp_count' 	 => $clusterImpCount,
-					'under_cap'				 => $isUnderFrequencyCap,
-					'previous_log_targetted' => $logWasTargetted,
+					'previous_imp_count' 	 => $clusterLogImpCount,
+					//'under_cap'				 => $isUnderFrequencyCap,
 					'targeting_matched'		 => $matchesClusterTargeting,
 				]);										
 			}			
@@ -201,52 +196,56 @@
 			{
 				echo '<!-- placement status: '.$placement['status'].' -->';
 				echo '<!-- placement imps: '.$placement['imps'].' -->';
-				echo '<!-- cluster imps: '.$clusterImpCount.' -->';
+				echo '<!-- cluster imps: '.$clusterLogImpCount.' -->';
 				echo '<!-- process tracking: -->';
 			}
 
-			if ( $placement['status'] == 'health_check' )
-				$impStatus = 'health_check';
-
-			if ( $placement['status'] == 'testing' )
-				$impStatus = 'testing';
-
+			// update imp status based on placement status
+			switch ( $placement['status'] )
+			{
+				case 'health_check':
+				case 'testing':
+					$impStatus = $placement['status'];
+				break;
+			}
 
 			//-------------------------------------------------------
-			// LOG
+			// RETARGETING DECISION
 			//-------------------------------------------------------
 			if (
 				$placement['status'] == 'health_check' 
 				|| $placement['status'] == 'testing' 
-				|| ( $clusterImpCount && $logWasTargetted )						
+				|| $clusterLogImpCount > 0		
 			)
 			{	
+				// NO RETARGETTING PATH
+
+				// debug
 				if ( $this->_debugPlacement )
 				{
 					$this->_cache->setMap( 'lastdebug', [
 						'repeated_imp'	=> 'yes',
 					]);										
 				}			
-
-				// SKIP RETARGETING		
-				$retargetted = false;	
 			}
 			else
 			{		
+				// RETARGETTING PATH
+
+				// debug
 				if ( $this->_debugPlacement )
 				{
 					$this->_cache->setMap( 'lastdebug', [
 						'repeated_imp'	=> 'no',
 					]);										
 				}						
-				
-				// skip retargeting by default
-				$retargetted = false;
-
-				$this->_cache->useDatabase( 0 );
 
 				// verify if ip was banned
+				$this->_cache->useDatabase( 0 );
+
 				$ipRank = $this->_cache->getSortedSetElementRank('ipblacklist', $ip);
+
+				$this->_cache->useDatabase( $this->_getCurrentDatabase() );
 
 				if ( isset($ipRank) && (int)$ipRank>=0 )
 				{
@@ -258,7 +257,7 @@
 					$banned = false;
 				}
 
-				// verify invalid parameters
+				// check for invalid parameters
 				if(
  					\preg_match( '/^(((%)(.+)(%))|((\$)(.+)(\$))|((\()(.+)(\)))|((\{)(.+)(\}))|((\[)(.+)(\])))$/', $pubId )
 					|| \preg_match( '/^(((%)(.+)(%))|((\$)(.+)(\$))|((\()(.+)(\)))|((\{)(.+)(\}))|((\[)(.+)(\])))$/', $subpubId )
@@ -276,9 +275,7 @@
 					$invalidParams = false;
 				}
 
-
-				$this->_cache->useDatabase( $this->_getCurrentDatabase() );
-
+				// debug
 				if ( $this->_debugPlacement )
 				{
 					$this->_cache->setMap( 'lastdebug', [
@@ -287,12 +284,18 @@
 					]);										
 				}			
 
-				// match cluster targeting. If not, skip retargeting
-				if ( !$banned && $matchesClusterTargeting && !$invalidParams )
+				// check if first imp, ip blacklist, cluster targeting match and invalid params before sending forensiq request
+				if ( 
+					$clusterLogImpCount == 0 
+					&& !$banned 
+					&& $matchesClusterTargeting 
+					&& !$invalidParams 
+				)
 				{
 					if ( Config\Ad::DEBUG_HTML )
 						echo '<!-- matched cluster targeting -->';
 
+					// make fraud detection request
 					$detectionSuccess = $this->_fraudDetection->analize([
 						'request_type'	=> 'display',
 						'ip_address'	=> $ip,
@@ -300,18 +303,20 @@
 						'source_id'		=> $placement_id
 					]);
 
+					// debug
 					if ( $this->_debugPlacement )
-					{
+					{						
 						$this->_cache->setMap( 'lastdebug', [
 							'forensiq_success'	=> $detectionSuccess,
 							'risk_level'		=> $this->_fraudDetection->getRiskLevel(),
-							'forensiq_passed'	=> 'no'							
+							'forensiq_passed'	=> 'no'
 						]);										
 					}	
 
-					// if fraud detection passes, log and do retargeting
+					// verify fraud detection result
 					if ( $detectionSuccess && $this->_fraudDetection->getRiskLevel() <= Config\Ad::FRAUD_RISK_LVL )
 					{
+						// debug
 						if ( $this->_debugPlacement )
 						{
 							$this->_cache->setMap( 'lastdebug', [
@@ -322,13 +327,14 @@
 						if ( Config\Ad::DEBUG_HTML )
 							echo '<!-- fraud detection passed -->';
 
+						// get campaigns from pool
 						$this->_cache->useDatabase( 0 );
-
+				
 						$this->_retrieveCampaigns( $placement['cluster_id'] );
 
 						$this->_cache->useDatabase( $this->_getCurrentDatabase() );
 
-
+						// create campaign logs and run campaign selection
 						if ( $this->_campaigns && is_array($this->_campaigns) && !empty($this->_campaigns) )
 						{
 							// generate clickids and campaign logs
@@ -336,7 +342,6 @@
 							{
 								$clickId    = md5( $campaignId.$sessionHash );
 								$clickIDs[] = $clickId;
-								$clicks++;
 
 								if ( $this->_registry->httpRequest->getParam('test_campaign_pool')!=1 )
 								{
@@ -354,22 +359,24 @@
 								}	
 							}
 
-							// run campaign selection
-							$this->_campaignSelection->run( $clickIDs );
+							if ( $this->_registry->httpRequest->getParam('test_campaign_pool')!=1 )
+							{
+								// run campaign selection
+								$this->_campaignSelection->run( $clickIDs );
 
-							if ( Config\Ad::DEBUG_HTML )
-								echo '<!-- cs ok -->';
+								if ( Config\Ad::DEBUG_HTML )
+									echo '<!-- cs ok -->';
 
-							// store ad's code to be found by view and/or controller
-							$this->_registry->adCode = $this->_campaignSelection->getAdCode();
+								// store ad's code to be found by view and/or controller
+								$this->_registry->adCode = $this->_campaignSelection->getAdCode();
 
-							$retargetted = true;
-							$impStatus   = 'print';						
+								$impStatus   = 'print';						
+							}
 						}
 						else
 						{
 							if ( Config\Ad::DEBUG_HTML )
-								echo '<!-- no active campaigns in cluster -->';	
+								echo '<!-- no active campaigns in cluster -->';
 						}						
 					}
 					else
@@ -383,7 +390,7 @@
 			if ( $this->_registry->httpRequest->getParam('test_campaign_pool')!=1 )
 			{
 				$this->_clusterLog(
-					$clusterImpCount,
+					$clusterLogImpCount,
 					$sessionHash, 
 					$timestamp, 
 					$ip, 
@@ -391,7 +398,6 @@
 					$cluster, 
 					$device, 
 					$placement_id, 
-					$retargetted,
 					$matchesClusterTargeting,
 					$exchangeId,
 					$pubId,
@@ -434,15 +440,6 @@
 				$this->_registry->landingUrl  = $this->_cache->getMapField( 'cluster:'.$placement['cluster_id'], 'static_cp_land' );
 			}
 
-			// debug (quitar)
-			$clusterImpCount = $this->_cache->getMapField( 'clusterlog:'.$sessionHash, 'imps' );			
-			// check if cluster log was targetted
-			$logWasTargetted = $this->_cache->getMapField( 'clusterlog:'.$sessionHash, 'targetted' );
-
-			$this->_cache->useDatabase( 7 );
-			$this->_cache->setMapField( 'log:'.$sessionHash, "".microtime(true)."_end", $clusterImpCount.':'.$logWasTargetted );
-			$this->_cache->useDatabase( $this->_getCurrentDatabase() );
-
 			// Tell controller process completed successfully
 			$this->_registry->status = 200;
 			return true;
@@ -466,7 +463,7 @@
 
 
 		private function _clusterLog ( 
-			$clusterImpCount,
+			$clusterLogImpCount,
 			$sessionHash, 
 			$timestamp, 
 			$ip, 
@@ -474,7 +471,6 @@
 			array $cluster,
 			array $device, 
 			$placementId, 
-			$retargetted,
 			$matchesClusterTargeting,
 			$exchangeId,
 			$pubId,
@@ -487,12 +483,12 @@
 		)
 		{
 			// if cluster log already exists increment, otherwise create new
-			if ( $clusterImpCount )
+			if ( $clusterLogImpCount>0 )
 			{
 				if ( Config\Ad::DEBUG_HTML )
 					echo '<!-- increment log -->';
 
-				$this->_incrementClusterLog( $sessionHash, $placement, $timestamp, $clusterImpCount, $retargetted, $matchesClusterTargeting, $clicks, $impStatus );
+				$this->_incrementClusterLog( $sessionHash, $placement, $timestamp, $clusterLogImpCount, $matchesClusterTargeting, $clicks, $impStatus );
 			}
 			else
 			{
@@ -507,7 +503,6 @@
 					$cluster, 
 					$device, 
 					$placementId,  
-					$retargetted, 
 					$matchesClusterTargeting,
 					$exchangeId,
 					$pubId,
@@ -535,7 +530,6 @@
 			array $cluster,  
 			array $device, 
 			$placementId, 
-			$retargetted,
 			$matchesClusterTargeting,
 			$exchangeId,
 			$pubId,
@@ -588,10 +582,8 @@
 				'device_brand'	  => $device['device_brand'], 
 				'browser'		  => $device['browser'], 
 				'browser_version' => $device['browser_version'], 
-				'imps'			  => 1, 
 				'imp_status'	  => $impStatus, 
 				'clicks'  		  => $clicks, 
-				'targetted'		  => $retargetted, 
 				'cost'			  => $cost
 			]);
 		}
@@ -601,8 +593,7 @@
 			$sessionHash, 
 			array $placement, 
 			$timestamp, 
-			$clusterImpCount, 
-			$retargetted, 
+			$clusterLogImpCount, 
 			$matchesClusterTargeting,
 			$clicks,
 			$impStatus
@@ -613,17 +604,19 @@
 				case 'CPM':
 					$this->_cache->incrementMapField( 'clusterlog:'.$sessionHash, 'cost', $placement['payout']/1000 );
 				break;
-			}		
+			}	
 
+			// retargeting on repeated imps was deprecated	
+			/*
 			if ( $retargetted )
 			{
 				$this->_cache->setMapField( 'clusterlog:'.$sessionHash, 'targetted', $retargetted );
 				$this->_cache->setMapField( 'clusterlog:'.$sessionHash, 'clicks', $clicks );
 				$this->_cache->setMapField( 'clusterlog:'.$sessionHash, 'imp_status', $impStatus );		
 			}
-
+			*/
+		
 			$this->_cache->addToSortedSet( 'sessionhashes', $timestamp, $sessionHash );
-			$this->_cache->incrementMapField( 'clusterlog:'.$sessionHash, 'imps' );
 		}
 
 
@@ -826,12 +819,13 @@
 
 		private function _retrieveCampaigns ( $cluster_id )
 		{
+			// initalize pool
 			$this->_campaigns     	   = [];
 			$this->_campaignsPool 	   = [];
 			$this->_excludedAffiliates = [];
 			$this->_excludedPackageIds = [];
 
-			// retrieve campaigns from cluster
+			// retrieve campaign data from cluster
 			$clusterCampaigns = $this->_cache->getSortedSet( 
 				'clusterlist:'.$cluster_id,
 				0,
@@ -849,6 +843,7 @@
 				$this->_retrieveCampaign( $clusterCampaigns, $campaignsTotal );	
 			}
 
+			// debug
 			if ( $this->_registry->httpRequest->getParam('test_campaign_pool')==1 )
 			{
 				echo 'SELECTED CAMPAIGNS<br><br>';
@@ -859,6 +854,7 @@
 
 		private function _retrieveCampaign ( array $clusterCampaigns, $campaignsTotal )
 		{
+			// debug
 			if ( $this->_registry->httpRequest->getParam('test_campaign_pool')==1 )
 			{
 				echo 'CURRENT CAMPAIGN POOL<br><br>';		
@@ -870,7 +866,7 @@
 				echo '<hr>';				
 			}
 
-			// select campaign from pool
+			// select campaign from pool if there is any
 			$poolCount    = \count($this->_campaignsPool);
 			$randPosition = \rand ( 0, $poolCount-1 );
 
@@ -883,9 +879,9 @@
 				$selectedCid = false;
 			}
 
+			// save selected campaign
 			if ( $selectedCid )
 			{
-				// save selected campaign
 				$this->_campaigns[] = $selectedCid;
 
 				// save affiliate and package_id data to be excluded when recreating pool
@@ -902,7 +898,7 @@
 				}
 			}			
 
-			// recreate pool removing retrieved campaign and campaigns with same affiliate or package_id
+			// recreate pool removing selected campaign and other campaigns with same affiliate or package_id
 			unset( $this->_campaignsPool );
 			$this->_campaignsPool = [];		
 
@@ -925,6 +921,7 @@
 					}
 				}
 
+				// free memory
 				unset( $data );
 			}
 

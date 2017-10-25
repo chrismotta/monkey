@@ -69,10 +69,6 @@
 
 			$campaignLog = $this->_cache->getMap( 'campaignlog:'. $click_id );
 
-			$this->_cache->useDatabase(7);
-			$this->_cache->addToSortedSet( 'realclickids', $this->_registry->httpRequest->getTimestamp(), $click_id );
-
-			$this->_cache->useDatabase( $this->_getCurrentDatabase() );
 
 			if ( $campaignLog )
 			{
