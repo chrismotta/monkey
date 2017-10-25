@@ -152,7 +152,7 @@
 			}	
 
 			$this->_cache->useDatabase( 7 );
-			$this->_cache->incrementMapField( 'log:'.$sessionHash, 'imps' );
+			$this->_cache->incrementMapField( 'log:'.$sessionHash, 'totalimps' );
 
 			//debug (quitar)
 			$this->_registry->sessionHash = $sessionHash;		
@@ -163,10 +163,14 @@
 			$this->_cache->useDatabase( $this->_getCurrentDatabase() );
 
 			// check if cluster exists and how many imps
-			$clusterImpCount = $this->_cache->getMapField( 'clusterlog:'.$sessionHash, 'imps' );
+			$clusterImpCount = $this->_cache->getMapField( 'clusterlog:'.$sessionHash, 'imps' );			
 
 			// check if cluster log was targetted
 			$logWasTargetted = $this->_cache->getMapField( 'clusterlog:'.$sessionHash, 'targetted' );
+
+			$this->_cache->useDatabase( 7 );
+			$this->_cache->setMapField( 'log:'.$sessionHash, "".microtime(true)."", $clusterImpCount.':'.$logWasTargetted );
+			$this->_cache->useDatabase( $this->_getCurrentDatabase() );
 
 			// check cluster targeting
 			$matchesClusterTargeting = $this->_matchClusterTargeting( $cluster, $device );
