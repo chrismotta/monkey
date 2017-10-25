@@ -351,7 +351,7 @@
 
 								if ( $this->_debugPlacement )
 								{
-									$i = 'click_id'.$clicks;
+									$i = 'click_id_'.count($clickIDs);
 									$this->_cache->setMap( 'lastdebug', [
 										$i => $clickId,
 										'risk_level'		=> $this->_fraudDetection->getRiskLevel()
