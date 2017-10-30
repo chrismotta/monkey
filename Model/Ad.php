@@ -545,15 +545,12 @@
 			switch ( $placement['model'] )
 			{
 				case 'CPM':
-					if ( $matchesClusterTargeting )
-						$cost = $placement['payout']/1000;
-					else
-						$cost = 0;
+					$cost = $placement['payout']/1000;
 				break;
 				default:
 					$cost = 0;
 				break;
-			}				
+			}
 
 
 			// save cluster log index into a set in order to know all logs from ETL script
