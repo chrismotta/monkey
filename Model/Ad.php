@@ -343,6 +343,14 @@
 								$clickId    = md5( $campaignId.$sessionHash );
 								$clickIDs[] = $clickId;
 
+								// increment campaigns retargeted imps by cluster in order to be compared with convs by etl
+								$this->_cache->useDatabase( 0 );
+								$this->_cache->incrementSortedSetElementScore( 
+									'clusterimps:'.$placement['cluster_id'], 
+									$campaignId 
+								);
+								$this->_cache->useDatabase( $this->_getCurrentDatabase() );
+
 								if ( $this->_registry->httpRequest->getParam('test_campaign_pool')!=1 )
 								{
 									// save campaign log
