@@ -853,7 +853,7 @@
 			$campaignsTotal = \count($clusterCampaigns);
 
 			// retrieve campaigns
-			for( $i=0; $i<=5; $i++ )
+			for( $i=0; $i<=10; $i++ )
 			{
 				$this->_retrieveCampaign( $clusterCampaigns, $campaignsTotal );	
 			}
