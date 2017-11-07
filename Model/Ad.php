@@ -163,8 +163,17 @@
 			//-------------------------------------------------------
 			$this->_cache->useDatabase( $this->_getCurrentDatabase() );
 
-			// write imp and get imp count
-			$clusterLogImpCount = (int)$this->_cache->incrementMapField( 'clusterlog:'.$sessionHash, 'imps' )-1;		
+			// write imp and get imp count (if not testing)
+			if ( $this->_registry->httpRequest->getParam('test_campaign_pool')!=1 )
+			{
+				$clusterLogImpCount = (int)$this->_cache->incrementMapField( 'clusterlog:'.$sessionHash, 'imps' )-1;			
+			}
+			else
+			{
+				// set to 0 when testing campaing pool in order to take retargeting path
+				$clusterLogImpCount = 0;
+			}
+			
 
 			// check cluster targeting
 			$matchesClusterTargeting = $this->_matchClusterTargeting( $cluster, $device );
@@ -259,10 +268,10 @@
 
 				// check for invalid parameters
 				if(
- 					\preg_match( '/^(((%)(.+)(%))|((\$)(.+)(\$))|((\()(.+)(\)))|((\{)(.+)(\}))|((\[)(.+)(\])))$/', $pubId )
-					|| \preg_match( '/^(((%)(.+)(%))|((\$)(.+)(\$))|((\()(.+)(\)))|((\{)(.+)(\}))|((\[)(.+)(\])))$/', $subpubId )
-					|| \preg_match( '/^(((%)(.+)(%))|((\$)(.+)(\$))|((\()(.+)(\)))|((\{)(.+)(\}))|((\[)(.+)(\])))$/', $gaid )				
-					|| \preg_match( '/^(((%)(.+)(%))|((\$)(.+)(\$))|((\()(.+)(\)))|((\{)(.+)(\}))|((\[)(.+)(\])))$/', $idfa )					
+ 					\preg_match( Config\Ad::MACRO_REGEX, $pubId )
+					|| \preg_match( Config\Ad::MACRO_REGEX, $subpubId )
+					|| \preg_match( Config\Ad::MACRO_REGEX, $gaid )				
+					|| \preg_match( Config\Ad::MACRO_REGEX, $idfa )				
 				)
 				{
 					$invalidParams = true;
@@ -290,6 +299,7 @@
 					&& !$banned 
 					&& $matchesClusterTargeting 
 					&& !$invalidParams 
+					&& !( $idfa && $gaid )
 				)
 				{
 					if ( Config\Ad::DEBUG_HTML )
@@ -377,19 +387,16 @@
 								}	
 							}
 
-							if ( $this->_registry->httpRequest->getParam('test_campaign_pool')!=1 )
-							{
-								// run campaign selection
-								$this->_campaignSelection->run( $clickIDs );
+							// run campaign selection
+							$this->_campaignSelection->run( $clickIDs );
 
-								if ( Config\Ad::DEBUG_HTML )
-									echo '<!-- cs ok -->';
+							if ( Config\Ad::DEBUG_HTML )
+								echo '<!-- cs ok -->';
 
-								// store ad's code to be found by view and/or controller
-								$this->_registry->adCode = $this->_campaignSelection->getAdCode();
+							// store ad's code to be found by view and/or controller
+							$this->_registry->adCode = $this->_campaignSelection->getAdCode();
 
-								$impStatus   = 'print';						
-							}
+							$impStatus   = 'print';						
 						}
 						else
 						{
@@ -401,32 +408,29 @@
 					{
 						$impStatus = 'high_risk';
 					}
-				}			
+				}		
 			}
 
 			// save cluster log
-			if ( $this->_registry->httpRequest->getParam('test_campaign_pool')!=1 )
-			{
-				$this->_clusterLog(
-					$clusterLogImpCount,
-					$sessionHash, 
-					$timestamp, 
-					$ip, 
-					$placement,
-					$cluster, 
-					$device, 
-					$placement_id, 
-					$matchesClusterTargeting,
-					$exchangeId,
-					$pubId,
-					$subpubId,
-					$deviceId,
-					$idfa,
-					$gaid,
-					$impStatus,
-					count($clickIDs)
-				);
-			}
+			$this->_clusterLog(
+				$clusterLogImpCount,
+				$sessionHash, 
+				$timestamp, 
+				$ip, 
+				$placement,
+				$cluster, 
+				$device, 
+				$placement_id, 
+				$matchesClusterTargeting,
+				$exchangeId,
+				$pubId,
+				$subpubId,
+				$deviceId,
+				$idfa,
+				$gaid,
+				$impStatus,
+				count($clickIDs)
+			);
 
 			//-------------------------------------
 			// RENDER
@@ -853,7 +857,7 @@
 			$campaignsTotal = \count($clusterCampaigns);
 
 			// retrieve campaigns
-			for( $i=0; $i<=10; $i++ )
+			for( $i=0; $i<=Config\Ad::CAMPAIGNS_MAX; $i++ )
 			{
 				$this->_retrieveCampaign( $clusterCampaigns, $campaignsTotal );	
 			}
