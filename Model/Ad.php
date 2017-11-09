@@ -89,7 +89,8 @@
 
 
 			// check if load balancer exists. If exists get original ip from X-Forwarded-For header
-			$ip = $this->_registry->httpRequest->getHeader('X-Forwarded-For');
+			$ip 	 = $this->_registry->httpRequest->getHeader('X-Forwarded-For');
+			$referer = $this->_registry->httpRequest->getReferer();
 
 			if ( !$ip )
 				$ip = $this->_registry->httpRequest->getSourceIp();
@@ -429,7 +430,8 @@
 				$idfa,
 				$gaid,
 				$impStatus,
-				count($clickIDs)
+				count($clickIDs),
+				$referer
 			);
 
 			//-------------------------------------
@@ -501,7 +503,8 @@
 			$idfa,
 			$gaid,
 			$impStatus,
-			$clicks	
+			$clicks,
+			$referer	
 		)
 		{
 			// if cluster log already exists increment, otherwise create new
@@ -533,7 +536,8 @@
 					$idfa,
 					$gaid,
 					$impStatus,
-					$clicks				 
+					$clicks,
+					$referer				 
 				);
 			}
 
@@ -560,7 +564,8 @@
 			$idfa,
 			$gaid,
 			$impStatus,
-			$clicks
+			$clicks,
+			$referer
 		)
 		{
 			// calculate cost
@@ -603,7 +608,8 @@
 				'browser_version' => $device['browser_version'], 
 				'imp_status'	  => $impStatus, 
 				'clicks'  		  => $clicks, 
-				'cost'			  => $cost
+				'cost'			  => $cost,
+				'referer'		  => $referer
 			]);
 		}
 
