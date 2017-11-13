@@ -65,6 +65,7 @@
 			$deviceId      = $this->_registry->httpRequest->getParam('device_id');
 			$idfa   	   = $this->_registry->httpRequest->getParam('idfa');
 			$gaid   	   = $this->_registry->httpRequest->getParam('gaid');
+			$referer  	   = $this->_registry->httpRequest->getParam('referer');
 			$timestamp     = $this->_registry->httpRequest->getTimestamp();
 			$impStatus     = 'no_offer';
 			$clickIDs 	   = [];
@@ -87,10 +88,12 @@
 				$sessionId = $gaid;
 			}
 
+			// if referer was not passed within parameter, get from header			
+			if ( !$referer )
+				$referer = $this->_registry->httpRequest->getReferer();
 
 			// check if load balancer exists. If exists get original ip from X-Forwarded-For header
-			$ip 	 = $this->_registry->httpRequest->getHeader('X-Forwarded-For');
-			$referer = $this->_registry->httpRequest->getReferer();
+			$ip = $this->_registry->httpRequest->getHeader('X-Forwarded-For');
 
 			if ( !$ip )
 				$ip = $this->_registry->httpRequest->getSourceIp();
