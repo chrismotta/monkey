@@ -344,7 +344,11 @@
 						// get campaigns from pool
 						$this->_cache->useDatabase( 0 );
 				
-						$this->_retrieveCampaigns( $placement['cluster_id'] );
+						$this->_retrieveCampaigns( 
+							$placement['cluster_id'],
+							$pubId,
+							$subpubId
+						);
 
 						$this->_cache->useDatabase( $this->_getCurrentDatabase() );
 
@@ -845,7 +849,7 @@
 		}
 
 
-		private function _retrieveCampaigns ( $cluster_id )
+		private function _retrieveCampaigns ( $cluster_id, $pub_id = null, $subpub_id = null )
 		{
 			// initalize pool
 			$this->_campaigns     	   = [];
@@ -863,14 +867,43 @@
 				]
 			);
 
-			$campaignsTotal = \count($clusterCampaigns);
+			$availableCampaigns = [];
+
+			// exclude campaigns which have pub_id or subpub_id in blacklist
+			$this->_cache->beginTransaction();
+
+			foreach ( $clusterCampaigns as $campaign => $frequency )
+			{
+
+				$data = \explode( ':', $campaign );
+
+				$this->_cache->isInSet( 'pubidblacklist:'.$data[0], $pub_id );
+				$this->_cache->isInSet( 'pubidblacklist:'.$data[0], $subpub_id );
+			}
+
+			$results = $this->_cache->commit();
+			$pos = 0;
+
+			foreach ( $clusterCampaigns as $campaign => $frequency )
+			{
+				// as redis transaction returns an array where each value has the result for each command and for each campaign we run 2 commands, calculate index position in order to check transaction result for each campaign
+				$pos1 = $pos + $pos;
+				$pos2 = $pos + $pos + 1;
+
+				if ( (int)$results[$pos1]!=1 && (int)$results[$pos2]!=1 )
+				{
+					$availableCampaigns[$campaign] = $frequency;
+				}
+
+				$pos++;
+			}
 
 			// retrieve campaigns
 			for( $i=0; $i<=Config\Ad::CAMPAIGNS_MAX; $i++ )
 			{
-				$this->_retrieveCampaign( $clusterCampaigns, $campaignsTotal );	
+				$this->_retrieveCampaign( $availableCampaigns, \count($availableCampaigns) );	
 			}
-
+			
 			// debug
 			if ( $this->_registry->httpRequest->getParam('test_campaign_pool')==1 )
 			{
