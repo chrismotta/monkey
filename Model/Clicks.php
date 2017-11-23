@@ -90,6 +90,8 @@
 
 					$callbackURL = $this->_replaceMacros ( $campaign[0], $campaign[1], $click_id, $campaign[2], $campaign[4], $campaign[3], $campaignLog['session_hash'] );
 
+					echo $callbackURL;die();
+
 					header('Location: '. $callbackURL );
 					exit();
 				}
@@ -111,6 +113,7 @@
 
 		public function test ( $campaign_id )
 		{
+
 			//-------------------------------------
 			// LOG
 			//-------------------------------------
@@ -123,7 +126,6 @@
 
 				$callbackURL = $this->_replaceMacros ( $campaign[0], $campaign[1], $clickId, $campaign[2], $campaign[4], $campaign[3] );
 				
-
 				$this->_cache->useDatabase( 8 );
 
 				// write campaign log
@@ -189,6 +191,28 @@
 						case '{click_id}':
 							$value = $click_id;
 						break;
+						case '{int_pub_id}':
+							if ( $clusterLog )
+							{
+								$value = $clusterLog[3];								
+							}
+							else if ( $session_hash )
+							{
+								$this->_cache->useDatabase( $this->_getCurrentDatabase() );
+
+								if ( !$clusterLog )
+									$clusterLog = $this->_cache->getMap( 'clusterlog:'.$session_hash, [
+										'subpub_id',
+										'idfa',
+										'gaid',
+										'publisher_id'
+									]);
+
+								$value = $clusterLog[3];
+							}
+							else
+								$value = null;							
+						break;
 						case '{subpub_id}':
 							if ( $clusterLog )
 							{
@@ -202,7 +226,8 @@
 									$clusterLog = $this->_cache->getMap( 'clusterlog:'.$session_hash, [
 										'subpub_id',
 										'idfa',
-										'gaid'
+										'gaid',
+										'publisher_id'
 									]);
 
 								$value = $clusterLog[0];
@@ -223,7 +248,8 @@
 									$clusterLog = $this->_cache->getMap( 'clusterlog:'.$session_hash, [
 										'subpub_id',
 										'idfa',
-										'gaid'
+										'gaid',
+										'publisher_id'
 									]);
 
 								$value = $clusterLog[2];
@@ -244,7 +270,8 @@
 									$clusterLog = $this->_cache->getMap( 'clusterlog:'.$session_hash, [
 										'subpub_id',
 										'idfa',
-										'gaid'
+										'gaid',
+										'publisher_id'
 									]);
 
 								$value = $clusterLog[1];
@@ -285,7 +312,29 @@
 						break;
 						case '{click_id}':
 							$value = $click_id;
-						break;						
+						break;
+						case '{int_pub_id}':
+							if ( $clusterLog )
+							{
+								$value = $clusterLog[3];								
+							}
+							else if ( $session_hash )
+							{
+								$this->_cache->useDatabase( $this->_getCurrentDatabase() );
+
+								if ( !$clusterLog )
+									$clusterLog = $this->_cache->getMap( 'clusterlog:'.$session_hash, [
+										'subpub_id',
+										'idfa',
+										'gaid',
+										'publisher_id'
+									]);
+
+								$value = $clusterLog[3];
+							}
+							else
+								$value = null;							
+						break;												
 						case '{subpub_id}':
 							if ( $clusterLog )
 							{

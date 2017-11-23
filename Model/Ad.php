@@ -596,6 +596,7 @@
 			$this->_cache->setMap( 'clusterlog:'.$sessionHash, [
 				'cluster_id'	  => $placement['cluster_id'], 
 				'cluster_name'	  => $cluster['name'], 
+				'publisher_id'	  => $placement['publisher_id'],
 				'placement_id'	  => $placementId,  
 				'exchange_id'	  => $exchangeId, 
 				'pub_id'		  => $pubId, 
