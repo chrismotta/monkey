@@ -19,6 +19,7 @@
 		private $_excludedAffiliates;
 		private $_excludedPackageIds;
 		private $_debugPlacement;
+		private $_dateShort;
 
 
 		public function __construct ( 
@@ -37,6 +38,7 @@
 			$this->_cache           	= $cache;
 			$this->_campaignSelection	= $campaignSelection;
 			$this->_fraudDetection		= $fraudDetection;
+			$this->_dateShort           = \date('Ymd');
 
 			if ( isset( $_GET['debug_placement'] ) && 
 				(int)$_GET['debug_placement']==1 )
@@ -343,7 +345,7 @@
 
 						// get campaigns from pool
 						$this->_cache->useDatabase( 0 );
-				
+
 						$this->_retrieveCampaigns( 
 							$placement['cluster_id'],
 							$pubId,
@@ -764,7 +766,6 @@
 				return false;
 			}			
 
-
 			if ( $this->_debugPlacement )
 			{
 				$this->_cache->setMap( 'lastdebug', [
@@ -849,6 +850,12 @@
 		}
 
 
+		private function _getConvDatabase ( )
+		{
+			return \floor(($this->_registry->httpRequest->getTimestamp()/60/60/24))%2+3;
+		}		
+
+
 		private function _retrieveCampaigns ( $cluster_id, $pub_id = null, $subpub_id = null )
 		{
 			// initalize pool
@@ -867,6 +874,16 @@
 				]
 			);
 
+			// retrieve daily cap data from campaigns in the cluster
+			$dailyCaps = $this->_cache->getSortedSet( 
+				'clustercaps:'.$cluster_id,
+				0,
+				-1,
+				[
+					'WITHSCORES' => true
+				]
+			);
+
 			$availableCampaigns = [];
 
 			// exclude campaigns which have pub_id or subpub_id in blacklist
@@ -874,7 +891,6 @@
 
 			foreach ( $clusterCampaigns as $campaign => $frequency )
 			{
-
 				$data = \explode( ':', $campaign );
 
 				$this->_cache->isInSet( 'pubidblacklist:'.$data[0], $pub_id );
@@ -884,13 +900,44 @@
 			$results = $this->_cache->commit();
 			$pos = 0;
 
+			// retrieve campaign's today conversions			
+			$this->_cache->useDatabase( $this->_getCurrentDatabase() );
+
+			$todayConvs = $this->_cache->getSortedSet( 
+				'campaignconvs'.$this->_dateShort,
+				0,
+				-1,
+				[
+					'WITHSCORES' => true
+				]
+			);
+
+			$this->_cache->useDatabase( 0 );
+
+			// exclude blacklisted or over-cap campaigns
 			foreach ( $clusterCampaigns as $campaign => $frequency )
 			{
+				$data = \explode( ':', $campaign );
+				$cid  = $data[0];
+
+				// calculate 80% of the real daily cap
+				if ( isset($dailyCaps[$cid]) )
+					$dailyCap = (int)$dailyCaps[$cid]*80/100;
+
 				// as redis transaction returns an array where each value has the result for each command and for each campaign we run 2 commands, calculate index position in order to check transaction result for each campaign
 				$pos1 = $pos + $pos;
 				$pos2 = $pos + $pos + 1;
 
-				if ( (int)$results[$pos1]!=1 && (int)$results[$pos2]!=1 )
+				if ( isset($dailyCaps[$cid]) && isset($todayConvs[$cid]) && (int)$todayConvs[$cid] >= $dailyCap )
+				{
+					$underCap = false;
+				}
+				else
+				{
+					$underCap = true;
+				}
+
+				if ( (int)$results[$pos1]!=1 && (int)$results[$pos2]!=1 && $underCap )	
 				{
 					$availableCampaigns[$campaign] = $frequency;
 				}
@@ -957,7 +1004,7 @@
 						break;
 					}
 				}
-			}			
+			}
 
 			// recreate pool removing selected campaign and other campaigns with same affiliate or package_id
 			unset( $this->_campaignsPool );
