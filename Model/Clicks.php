@@ -90,7 +90,6 @@
 
 					$callbackURL = $this->_replaceMacros ( $campaign[0], $campaign[1], $click_id, $campaign[2], $campaign[4], $campaign[3], $campaignLog['session_hash'] );
 
-					echo $callbackURL;die();
 
 					header('Location: '. $callbackURL );
 					exit();
