@@ -619,7 +619,9 @@
 				'imp_status'	  => $impStatus, 
 				'clicks'  		  => $clicks, 
 				'cost'			  => $cost,
-				'referer'		  => $referer
+				'referer'		  => $referer,
+				'bundle'		  => $this->_registry->httpRequest->getParam('bundle'),
+				'appsite'		  => $this->_registry->httpRequest->getParam('appsite')
 			]);
 		}
 

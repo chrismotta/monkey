@@ -90,7 +90,6 @@
 
 					$callbackURL = $this->_replaceMacros ( $campaign[0], $campaign[1], $click_id, $campaign[2], $campaign[4], $campaign[3], $campaignLog['session_hash'] );
 
-
 					header('Location: '. $callbackURL );
 					exit();
 				}
@@ -204,7 +203,9 @@
 										'subpub_id',
 										'idfa',
 										'gaid',
-										'publisher_id'
+										'publisher_id',
+										'appsite',
+										'bundle'										
 									]);
 
 								$value = $clusterLog[3];
@@ -226,7 +227,9 @@
 										'subpub_id',
 										'idfa',
 										'gaid',
-										'publisher_id'
+										'publisher_id',
+										'appsite',
+										'bundle'										
 									]);
 
 								$value = $clusterLog[0];
@@ -235,28 +238,6 @@
 								$value = null;
 						break;							
 						case '{idfa}':	
-							if ( $clusterLog )
-							{
-								$value = $clusterLog[2];								
-							}						
-							else if ( $session_hash )
-							{
-								$this->_cache->useDatabase( $this->_getCurrentDatabase() );
-
-								if ( !$clusterLog )
-									$clusterLog = $this->_cache->getMap( 'clusterlog:'.$session_hash, [
-										'subpub_id',
-										'idfa',
-										'gaid',
-										'publisher_id'
-									]);
-
-								$value = $clusterLog[2];
-							}
-							else
-								$value = null;
-						break;											
-						case '{gaid}':
 							if ( $clusterLog )
 							{
 								$value = $clusterLog[1];								
@@ -270,14 +251,88 @@
 										'subpub_id',
 										'idfa',
 										'gaid',
-										'publisher_id'
+										'publisher_id',
+										'appsite',
+										'bundle'										
 									]);
 
 								$value = $clusterLog[1];
 							}
 							else
 								$value = null;
-						break;										
+						break;											
+						case '{gaid}':
+							if ( $clusterLog )
+							{
+								$value = $clusterLog[2];								
+							}						
+							else if ( $session_hash )
+							{
+								$this->_cache->useDatabase( $this->_getCurrentDatabase() );
+
+								if ( !$clusterLog )
+									$clusterLog = $this->_cache->getMap( 'clusterlog:'.$session_hash, [
+										'subpub_id',
+										'idfa',
+										'gaid',
+										'publisher_id',
+										'appsite',
+										'bundle'										
+									]);
+
+								$value = $clusterLog[2];
+							}
+							else
+								$value = null;
+						break;	
+						case '{appsite}':
+							if ( $clusterLog )
+							{
+								$value = $clusterLog[4];								
+							}						
+							else if ( $session_hash )
+							{
+								$this->_cache->useDatabase( $this->_getCurrentDatabase() );
+
+								if ( !$clusterLog )
+									$clusterLog = $this->_cache->getMap( 'clusterlog:'.$session_hash, [
+										'subpub_id',
+										'idfa',
+										'gaid',
+										'publisher_id',
+										'appsite',
+										'bundle'
+									]);
+
+								$value = $clusterLog[4];
+							}
+							else
+								$value = null;
+						break;
+						case '{bundle}':
+							if ( $clusterLog )
+							{
+								$value = $clusterLog[5];								
+							}						
+							else if ( $session_hash )
+							{
+								$this->_cache->useDatabase( $this->_getCurrentDatabase() );
+
+								if ( !$clusterLog )
+									$clusterLog = $this->_cache->getMap( 'clusterlog:'.$session_hash, [
+										'subpub_id',
+										'idfa',
+										'gaid',
+										'publisher_id',
+										'appsite',
+										'bundle'
+									]);
+
+								$value = $clusterLog[5];
+							}
+							else
+								$value = null;
+						break;
 						default:
 							$value = null;
 						break;
@@ -326,7 +381,9 @@
 										'subpub_id',
 										'idfa',
 										'gaid',
-										'publisher_id'
+										'publisher_id',
+										'appsite',
+										'bundle'									
 									]);
 
 								$value = $clusterLog[3];
@@ -347,7 +404,10 @@
 									$clusterLog = $this->_cache->getMap( 'clusterlog:'.$session_hash, [
 										'subpub_id',
 										'idfa',
-										'gaid'
+										'gaid',
+										'publisher_id',
+										'appsite',
+										'bundle'										
 									]);
 
 								$value = $clusterLog[0];
@@ -356,27 +416,6 @@
 								$value = null;
 						break;							
 						case '{idfa}':	
-							if ( $clusterLog )
-							{
-								$value = $clusterLog[2];								
-							}						
-							else if ( $session_hash )
-							{
-								$this->_cache->useDatabase( $this->_getCurrentDatabase() );
-
-								if ( !$clusterLog )
-									$clusterLog = $this->_cache->getMap( 'clusterlog:'.$session_hash, [
-										'subpub_id',
-										'idfa',
-										'gaid'
-									]);
-
-								$value = $clusterLog[2];
-							}
-							else
-								$value = null;
-						break;											
-						case '{gaid}':
 							if ( $clusterLog )
 							{
 								$value = $clusterLog[1];								
@@ -389,14 +428,89 @@
 									$clusterLog = $this->_cache->getMap( 'clusterlog:'.$session_hash, [
 										'subpub_id',
 										'idfa',
-										'gaid'
+										'gaid',
+										'publisher_id',
+										'appsite',
+										'bundle'										
 									]);
 
 								$value = $clusterLog[1];
 							}
 							else
 								$value = null;
-						break;										
+						break;											
+						case '{gaid}':
+							if ( $clusterLog )
+							{
+								$value = $clusterLog[2];								
+							}						
+							else if ( $session_hash )
+							{
+								$this->_cache->useDatabase( $this->_getCurrentDatabase() );
+
+								if ( !$clusterLog )
+									$clusterLog = $this->_cache->getMap( 'clusterlog:'.$session_hash, [
+										'subpub_id',
+										'idfa',
+										'gaid',
+										'publisher_id',
+										'appsite',
+										'bundle'										
+									]);
+
+								$value = $clusterLog[2];
+							}
+							else
+								$value = null;
+						break;
+						case '{appsite}':
+							if ( $clusterLog )
+							{
+								$value = $clusterLog[4];								
+							}						
+							else if ( $session_hash )
+							{
+								$this->_cache->useDatabase( $this->_getCurrentDatabase() );
+
+								if ( !$clusterLog )
+									$clusterLog = $this->_cache->getMap( 'clusterlog:'.$session_hash, [
+										'subpub_id',
+										'idfa',
+										'gaid',
+										'publisher_id',
+										'appsite',
+										'bundle'
+									]);
+
+								$value = $clusterLog[4];
+							}
+							else
+								$value = null;
+						break;
+						case '{bundle}':
+							if ( $clusterLog )
+							{
+								$value = $clusterLog[5];								
+							}						
+							else if ( $session_hash )
+							{
+								$this->_cache->useDatabase( $this->_getCurrentDatabase() );
+
+								if ( !$clusterLog )
+									$clusterLog = $this->_cache->getMap( 'clusterlog:'.$session_hash, [
+										'subpub_id',
+										'idfa',
+										'gaid',
+										'publisher_id',
+										'appsite',
+										'bundle'
+									]);
+
+								$value = $clusterLog[5];
+							}
+							else
+								$value = null;
+						break;																
 						default:
 							$value = null;
 						break;
