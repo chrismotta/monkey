@@ -366,18 +366,10 @@
 								// increment campaigns retargeted imps by cluster in order to be compared with convs by etl
 								$this->_cache->useDatabase( 0 );
 
-								// chec if campaign is not a trusted campaign for that cluster
-								$cpRank = $this->_cache->getSortedSetElementRank('clustertrust:'.$placement['cluster_id'], 
-									$campaignId
-								);
-								
-								if ( !isset($cpRank) )
-								{
-									$this->_cache->incrementSortedSetElementScore( 
+								$this->_cache->incrementSortedSetElementScore( 
 										'clusterimps:'.$placement['cluster_id'], 
 										$campaignId 
 									);
-								}
 
 								$this->_cache->useDatabase( $this->_getCurrentDatabase() );
 
