@@ -612,6 +612,7 @@
 				'clicks'  		  => $clicks, 
 				'cost'			  => $cost,
 				'referer'		  => $referer,
+				'ua'			  => $device['ua'],
 				'bundle'		  => $this->_registry->httpRequest->getParam('bundle'),
 				'appsite'		  => $this->_registry->httpRequest->getParam('appsite')
 			]);
@@ -812,6 +813,7 @@
 				$this->_deviceDetection->detect( $ua );
 				//echo '<!-- using device detector: yes -->';
 				$data = array(
+					'ua'			  => $ua,
 					'os' 			  => $this->_deviceDetection->getOs(),
 					'os_version'	  => $this->_deviceDetection->getOsVersion(), 
 					'device'		  => \strtolower($this->_deviceDetection->getType()), 
@@ -825,6 +827,11 @@
 
 				// add user agent identifier to a set in order to be found by ETL
 				$this->_cache->addToSortedSet( 'useragents', 0, $uaHash );
+			}
+			else if ( !isset($data['ua']) )
+			{
+				$this->_cache->setMapField( 'ua:'.$uaHash, 'ua', $ua );
+				$data['ua'] = $ua;
 			}
 
 			return $data;
