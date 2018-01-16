@@ -38,14 +38,14 @@
                         Config\Ad::FORENSIQ_KEY
                     );
 
-                die('testfq');
-
                 $ana = $forensiqObj->analize([
                     'request_type' =>'display',
                     'ip_address'   =>'200.69.24.13',
                     'session_id'   =>'123',
                     'source_id'    =>'123'
                 ]);
+
+                die('testfq');
 
                 if($ana)
                     var_dump($forensiqObj->getRiskLevel());
