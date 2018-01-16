@@ -40,7 +40,12 @@
 
                 die('testfq');
 
-                $ana = $forensiqObj->analize(['ip_address'=>$_GET['testfq'],'session_id'=>'123','source_id'=>'123']);
+                $ana = $forensiqObj->analize([
+                    'request_type' =>'display',
+                    'ip_address'   =>'200.69.24.13',
+                    'session_id'   =>'123',
+                    'source_id'    =>'123'
+                ]);
 
                 if($ana)
                     var_dump($forensiqObj->getRiskLevel());
