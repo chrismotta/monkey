@@ -30,6 +30,26 @@
                 'path_isp'       => Config\Ad::MAXMIND_DB_ISP 
             ]);
 
+            if(isset($_GET['testfq'])){
+                
+                /*
+                $forensiqObj = new Framework\AdServing\FraudDetection\Forensiq(
+                        new Framework\TCP\HTTP\Client\cURL(),
+                        new Framework\TCP\HTTP\Client\Request(),
+                        Config\Ad::FORENSIQ_KEY
+                    );
+
+                $ana = $forensiqObj->analize(['ip_address'=>'200.69.24.13','session_id'=>'123','source_id'=>'123']);
+                if($ana)
+                    var_dump($forensiqObj->getRiskLevel());
+                else
+                    echo 'not analized';
+                */
+                
+                die('testfq');
+            
+            }
+
         	$ad = new Model\Ad(
         		$this->_registry,
         		new Priv\CampaignSelection( $this->_registry ),
