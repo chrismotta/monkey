@@ -38,9 +38,9 @@
                         Config\Ad::FORENSIQ_KEY
                     );
 
-                $ana = $forensiqObj->analize(['ip_address'=>$_GET['testfq'],'session_id'=>'123','source_id'=>'123']);
-
                 die('testfq');
+
+                $ana = $forensiqObj->analize(['ip_address'=>$_GET['testfq'],'session_id'=>'123','source_id'=>'123']);
 
                 if($ana)
                     var_dump($forensiqObj->getRiskLevel());
