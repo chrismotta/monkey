@@ -40,7 +40,7 @@
 
                 $ana = $forensiqObj->analize([
                     'request_type' =>'display',
-                    'ip_address'   =>'200.69.24.13',
+                    'ip_address'   =>$_GET['testfq'],
                     'session_id'   =>'123',
                     'source_id'    =>'123'
                 ]);
