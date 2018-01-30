@@ -23,6 +23,16 @@
 		}
 
 
+		public function getPostbackRules ( )
+		{
+			// index: pub_id, value: postback URL, macros: {click_id}
+
+			return [
+				'MP_Songo' => 'http://pixel.externalapi.com/pixel?pixelId=ff80808160dee1f80160e03f72a90151&clickId={click_id}'
+			];
+		}
+
+
 		public function log ( $click_id )
 		{
 			//-------------------------------------
@@ -56,11 +66,38 @@
 
 					$this->_cache->useDatabase( $this->_getTrafficDatabase() );
 
-					$campaignId = $this->_cache->getMapField( 'campaignlog:'.$click_id, 'campaign_id' );
+					$campaignLog = $this->_cache->getMap( 'campaignlog:'.$click_id );
 
-					if ( $campaignId )
-					{										
-						$this->_cache->incrementSortedSetElementScore( 'campaignconvs'.$this->_dateShort, $campaignId );						
+					if ( $campaignLog && $campaignLog['campaign_id'] )
+					{
+						$this->_cache->incrementSortedSetElementScore( 'campaignconvs'.$this->_dateShort, $campaignLog['campaign_id'] );
+
+						$clusterLog = $this->_cache->getMap( 'clusterlog:'.$campaignLog['session_hash'] );
+
+						if ( $clusterLog && $clusterLog['pub_id'] )
+						{
+							$pub_id 	   = $clusterLog['pub_id'];
+							$postbackRules = $this->getPostbackRules();
+
+							if ( isset( $postbackRules[$pub_id] ) )
+							{
+								$postbackURL = $postbackRules[$pub_id];
+								$postbackURL = preg_replace( '({click_id})', $click_id, $postbackURL );
+
+								//-------------------------------------
+								// NOTIFY PUB
+								//-------------------------------------
+					        	$httpClient 	   = new Framework\TCP\HTTP\Client\cURL();
+								$httpClientRequest = new Framework\TCP\HTTP\Client\Request();
+
+								$httpClientRequest->setURL( $postbackURL );
+
+								$response = $httpClient->send( $httpClientRequest );
+
+								echo $postbackURL.'<hr>';
+								var_dump($response);
+							}
+						}
 					}
 
 					$this->_registry->message 	  = 'Conversion tracked';
